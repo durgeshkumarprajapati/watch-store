@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BrowserPushSettings } from "@/components/notifications/browser-push-settings";
 import { Badge } from "@/components/ui/badge";
 import { brand } from "@/config/brand";
 import { getServerEnv } from "@/config/env";
@@ -80,6 +81,8 @@ export default async function AdminSettingsPage() {
           </div>
         </section>
       </div>
+
+      <BrowserPushSettings enableAdminTest />
     </div>
   );
 }
