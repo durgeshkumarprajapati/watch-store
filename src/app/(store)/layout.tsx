@@ -24,6 +24,12 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <StoreHeader cartCount={cartCount} signedIn={Boolean(customer)} />
       <main className="flex-1">{children}</main>
       <StoreFooter />
+      <script
+        dangerouslySetInnerHTML={{
+          __html:
+            'window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__wsInstallPrompt=e;});',
+        }}
+      />
       <CustomerPwaManager />
     </div>
   );

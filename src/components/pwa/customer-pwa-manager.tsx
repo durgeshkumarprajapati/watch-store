@@ -13,6 +13,12 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
 }
 
+declare global {
+  interface Window {
+    __wsInstallPrompt?: BeforeInstallPromptEvent | null;
+  }
+}
+
 function isStandaloneMode(): boolean {
   if (typeof window === "undefined") return false;
   const nav = window.navigator as Navigator & { standalone?: boolean };
@@ -51,17 +57,22 @@ export function CustomerPwaManager() {
     }
 
     let timer: number | undefined;
-    if (isIosSafariUserAgent(window.navigator.userAgent)) {
+    if (window.__wsInstallPrompt) {
+      const earlyPrompt = window.__wsInstallPrompt;
+      timer = window.setTimeout(() => setDeferredPrompt(earlyPrompt), 0);
+    } else if (isIosSafariUserAgent(window.navigator.userAgent)) {
       timer = window.setTimeout(() => setShowIosGuide(true), 0);
     }
 
     function onBeforeInstallPrompt(e: Event) {
       e.preventDefault();
+      window.__wsInstallPrompt = e as BeforeInstallPromptEvent;
       if (isStandaloneMode() || isDismissedRecently()) return;
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     }
 
     function onAppInstalled() {
+      window.__wsInstallPrompt = null;
       setDeferredPrompt(null);
       setShowIosGuide(false);
     }
@@ -92,12 +103,14 @@ export function CustomerPwaManager() {
     try {
       await deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;
+      window.__wsInstallPrompt = null;
       if (choice.outcome === "dismissed") {
         handleDismiss();
         return;
       }
       setDeferredPrompt(null);
     } catch {
+      window.__wsInstallPrompt = null;
       setDeferredPrompt(null);
     }
   }
