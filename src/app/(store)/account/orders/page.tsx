@@ -53,10 +53,13 @@ export default async function AccountOrdersPage({
                 <div className="flex flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-mono text-mono-md text-on-surface">{o.orderNumber}</span>
-                    <Badge tone={o.status === "CONFIRMED" ? "success" : "secondary"}>{o.status}</Badge>
+                    <Badge tone={o.status === "CONFIRMED" || o.status === "DELIVERED" ? "success" : "secondary"}>{o.status}</Badge>
                     <Badge tone={o.paymentStatus === "PAID" ? "success" : "primary"}>
                       Payment: {o.paymentStatus}
                     </Badge>
+                    {o.status === "DELIVERED" ? (
+                      <Badge tone="secondary">Invoice Ready</Badge>
+                    ) : null}
                   </div>
                   <p className="font-body text-body-md text-on-surface-variant">
                     {o.createdAt.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} •{" "}

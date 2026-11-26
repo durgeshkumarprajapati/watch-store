@@ -37,6 +37,12 @@ const serverEnvSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().trim().min(1).optional(),
   CLOUDINARY_API_KEY: z.string().trim().min(1).optional(),
   CLOUDINARY_API_SECRET: z.string().trim().min(1).optional(),
+  SELLER_LEGAL_NAME: z.string().trim().min(2).optional(),
+  SELLER_ADDRESS: z.string().trim().min(5).optional(),
+  SELLER_STATE: z.string().trim().min(2).optional(),
+  SELLER_GSTIN: z.string().trim().min(15).max(15).optional(),
+  SELLER_EMAIL: z.string().trim().email().optional(),
+  SELLER_PHONE: z.string().trim().min(5).optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
@@ -70,6 +76,12 @@ export function getServerEnv(): ServerEnv {
     CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || undefined,
     CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || undefined,
     CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || undefined,
+    SELLER_LEGAL_NAME: process.env.SELLER_LEGAL_NAME || undefined,
+    SELLER_ADDRESS: process.env.SELLER_ADDRESS || undefined,
+    SELLER_STATE: process.env.SELLER_STATE || undefined,
+    SELLER_GSTIN: process.env.SELLER_GSTIN || undefined,
+    SELLER_EMAIL: process.env.SELLER_EMAIL || undefined,
+    SELLER_PHONE: process.env.SELLER_PHONE || undefined,
   });
 
   if (!parsed.success) {

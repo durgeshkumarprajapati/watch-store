@@ -504,6 +504,7 @@ model Order {
   reservations    InventoryReservation[]
   shipments       Shipment[]
   notifications   Notification[]
+  invoice         OrderInvoice?
 
   @@index([guestEmail])
   @@index([status, createdAt])
@@ -926,4 +927,21 @@ model CatalogueSyncRowResult {
 
   @@index([syncJobId, rowNumber])
   @@index([sku])
+}
+
+model InvoiceSequence {
+  yearMonth String @id
+  lastValue Int    @default(0)
+}
+
+model OrderInvoice {
+  id            String   @id @default(cuid())
+  orderId       String   @unique
+  invoiceNumber String   @unique
+  issuedAt      DateTime @default(now())
+  snapshot      Json
+  createdAt     DateTime @default(now())
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceNumber])
 }

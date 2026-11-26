@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { AccountShell } from "@/components/store/account/account-shell";
+import { DownloadInvoiceButton } from "@/components/store/account/download-invoice-button";
 import { getServerEnv } from "@/config/env";
 import { formatINR } from "@/lib/format";
 import { requireAuthenticatedCustomerPage } from "@/modules/auth/session-service";
@@ -60,13 +61,16 @@ export default async function AccountOrderDetailPage({
               Order {order.orderNumber}
             </h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge tone={order.status === "CONFIRMED" || order.status === "DELIVERED" ? "success" : "secondary"}>
               {order.status}
             </Badge>
             <Badge tone={order.paymentStatus === "PAID" ? "success" : "primary"}>
               Payment: {order.paymentStatus}
             </Badge>
+            {order.status === "DELIVERED" ? (
+              <DownloadInvoiceButton orderId={order.id} orderNumber={order.orderNumber} />
+            ) : null}
           </div>
         </div>
 

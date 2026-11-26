@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { DownloadInvoiceButton } from "@/components/store/account/download-invoice-button";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { brand } from "@/config/brand";
@@ -87,13 +88,20 @@ export default async function OrderConfirmationPage({
                       : "Order Saved — Payment Pending"}
                 </h1>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge tone={orderRecord.status === "CONFIRMED" ? "success" : "secondary"}>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone={orderRecord.status === "CONFIRMED" || orderRecord.status === "DELIVERED" ? "success" : "secondary"}>
                   {orderRecord.status}
                 </Badge>
                 <Badge tone={orderRecord.paymentStatus === "PAID" ? "success" : "primary"}>
                   Payment: {orderRecord.paymentStatus}
                 </Badge>
+                {orderRecord.status === "DELIVERED" && token ? (
+                  <DownloadInvoiceButton
+                    orderId={orderRecord.id}
+                    orderNumber={orderRecord.orderNumber}
+                    accessToken={token}
+                  />
+                ) : null}
               </div>
             </div>
 
