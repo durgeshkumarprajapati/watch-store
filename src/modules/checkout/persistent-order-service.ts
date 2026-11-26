@@ -322,7 +322,7 @@ export async function createPersistentOrder(
       }
 
       return { order: mapPersistedOrder(created), idempotentReplay: false };
-    });
+    }, { maxWait: 10000, timeout: 25000 });
 
     return { ok: true, ...outcome };
   } catch (err) {

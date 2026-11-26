@@ -113,16 +113,18 @@ export async function verifyRazorpayCheckoutPayment(params: {
   }
 
   if (rzpPayment.status === "captured") {
-    const settled = await prisma.$transaction((tx) =>
-      markPaymentCapturedInTx(tx, {
-        paymentId: attempt.payment.id,
-        attemptId: attempt.id,
-        razorpayOrderId: params.razorpayOrderId,
-        razorpayPaymentId: rzpPayment.id,
-        amountPaise: rzpPayment.amount,
-        currency: rzpPayment.currency,
-        metadata: rzpPayment as unknown as Prisma.InputJsonValue,
-      }),
+    const settled = await prisma.$transaction(
+      (tx) =>
+        markPaymentCapturedInTx(tx, {
+          paymentId: attempt.payment.id,
+          attemptId: attempt.id,
+          razorpayOrderId: params.razorpayOrderId,
+          razorpayPaymentId: rzpPayment.id,
+          amountPaise: rzpPayment.amount,
+          currency: rzpPayment.currency,
+          metadata: rzpPayment as unknown as Prisma.InputJsonValue,
+        }),
+      { maxWait: 10000, timeout: 25000 },
     );
 
     if (!settled.ok) {

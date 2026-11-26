@@ -100,15 +100,17 @@ export async function initiateRazorpayPayment(params: {
       const existingPayments = await rzp.fetchOrderPayments(latestAttempt.razorpayOrderId);
       const captured = existingPayments.find((p) => p.status === "captured");
       if (captured) {
-        const settled = await prisma.$transaction((tx) =>
-          markPaymentCapturedInTx(tx, {
-            paymentId: payment.id,
-            attemptId: latestAttempt.id,
-            razorpayOrderId: latestAttempt.razorpayOrderId!,
-            razorpayPaymentId: captured.id,
-            amountPaise: captured.amount,
-            currency: captured.currency,
-          }),
+        const settled = await prisma.$transaction(
+          (tx) =>
+            markPaymentCapturedInTx(tx, {
+              paymentId: payment.id,
+              attemptId: latestAttempt.id,
+              razorpayOrderId: latestAttempt.razorpayOrderId!,
+              razorpayPaymentId: captured.id,
+              amountPaise: captured.amount,
+              currency: captured.currency,
+            }),
+          { maxWait: 10000, timeout: 25000 },
         );
         if (settled.ok) {
           return {
