@@ -3,23 +3,23 @@
   "crons": [
     {
       "path": "/api/internal/reservations/cleanup",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/internal/shipping/sync",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/internal/notifications/process",
-      "schedule": "*/2 * * * *"
-    },
-    {
-      "path": "/api/internal/media/cleanup",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 1 * * *"
     },
     {
       "path": "/api/internal/payments/reconcile",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/internal/shipping/sync",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/internal/notifications/process",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/internal/media/cleanup",
+      "schedule": "0 5 * * *"
     }
   ]
 }
