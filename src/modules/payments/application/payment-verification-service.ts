@@ -2,6 +2,7 @@ import "server-only";
 import type { OrderStatus, PaymentStatus, Prisma, PrismaClient } from "@prisma/client";
 import { requireRazorpayConfig } from "@/config/env";
 import { getPrisma } from "@/lib/prisma";
+import { scheduleImmediatePushDispatch } from "@/modules/notifications/notification-worker-service";
 import { createRazorpayClient, type RazorpayClient } from "../infrastructure/razorpay-client";
 import {
   verifyOrderAccessToken,
@@ -113,22 +114,25 @@ export async function verifyRazorpayCheckoutPayment(params: {
   }
 
   if (rzpPayment.status === "captured") {
-    const settled = await prisma.$transaction((tx) =>
-      markPaymentCapturedInTx(tx, {
-        paymentId: attempt.payment.id,
-        attemptId: attempt.id,
-        razorpayOrderId: params.razorpayOrderId,
-        razorpayPaymentId: rzpPayment.id,
-        amountPaise: rzpPayment.amount,
-        currency: rzpPayment.currency,
-        metadata: rzpPayment as unknown as Prisma.InputJsonValue,
-      }),
+    const settled = await prisma.$transaction(
+      (tx) =>
+        markPaymentCapturedInTx(tx, {
+          paymentId: attempt.payment.id,
+          attemptId: attempt.id,
+          razorpayOrderId: params.razorpayOrderId,
+          razorpayPaymentId: rzpPayment.id,
+          amountPaise: rzpPayment.amount,
+          currency: rzpPayment.currency,
+          metadata: rzpPayment as unknown as Prisma.InputJsonValue,
+        }),
+      { maxWait: 10000, timeout: 25000 },
     );
 
     if (!settled.ok) {
       return { ok: false, code: "MISMATCH", error: settled.error };
     }
 
+    scheduleImmediatePushDispatch();
     return {
       ok: true,
       orderNumber: settled.orderNumber,
@@ -166,6 +170,7 @@ export async function verifyRazorpayCheckoutPayment(params: {
     }),
   );
 
+  scheduleImmediatePushDispatch();
   return {
     ok: false,
     code: "NOT_CAPTURED",

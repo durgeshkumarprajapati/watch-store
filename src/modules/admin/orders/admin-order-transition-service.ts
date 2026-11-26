@@ -2,7 +2,11 @@ import type { FulfilmentStatus, OrderStatus, PaymentProvider, PaymentStatus, Pri
 import { getPrisma } from "@/lib/prisma";
 import { canTransitionOrderStatus, canTransitionPaymentStatus } from "@/modules/checkout/status-transitions";
 import { commitReservationInTx, releaseReservationInTx } from "@/modules/inventory/reservation-service";
-import { enqueueOrderNotificationInTx } from "@/modules/notifications/notification-outbox-service";
+import {
+  enqueueAdminBroadcastInTx,
+  enqueueOrderNotificationInTx,
+} from "@/modules/notifications/notification-outbox-service";
+import { scheduleImmediatePushDispatch } from "@/modules/notifications/notification-worker-service";
 import { recordAdminAuditLog } from "../admin-audit-service";
 import type { AuthenticatedAdmin } from "../admin-auth-service";
 import {
@@ -111,6 +115,7 @@ export async function transitionAdminOrderStatus(
         }
       }
 
+      const now = new Date();
       const nextFulfilment: FulfilmentStatus =
         d.targetStatus === "DELIVERED" ? "DELIVERED" : order.fulfilmentStatus;
 
@@ -119,7 +124,7 @@ export async function transitionAdminOrderStatus(
         data: {
           status: d.targetStatus,
           fulfilmentStatus: nextFulfilment,
-          ...(d.targetStatus === "DELIVERED" ? { deliveredAt: new Date() } : {}),
+          ...(d.targetStatus === "DELIVERED" ? { deliveredAt: now } : {}),
         },
       });
 
@@ -134,17 +139,34 @@ export async function transitionAdminOrderStatus(
         },
       });
 
-      if (d.targetStatus === "CONFIRMED" && order.paymentProvider === "COD") {
+      if (d.targetStatus === "CONFIRMED") {
+        const eventType =
+          order.paymentProvider === "COD" ? "COD_ORDER_CONFIRMED" : "ORDER_CONFIRMED";
         await enqueueOrderNotificationInTx(tx, {
           orderId: order.id,
-          eventType: "COD_ORDER_CONFIRMED",
-          dedupeKey: `COD_ORDER_CONFIRMED:${order.id}`,
+          eventType,
+          dedupeKey: `${eventType}:${order.id}`,
+          previousStatus: order.status,
+          newStatus: d.targetStatus,
+          statusUpdatedAt: now,
+        });
+      } else if (d.targetStatus === "PROCESSING") {
+        await enqueueOrderNotificationInTx(tx, {
+          orderId: order.id,
+          eventType: "ORDER_CONFIRMED",
+          dedupeKey: `ORDER_PROCESSING:${order.id}`,
+          previousStatus: order.status,
+          newStatus: d.targetStatus,
+          statusUpdatedAt: now,
         });
       } else if (d.targetStatus === "DELIVERED") {
         await enqueueOrderNotificationInTx(tx, {
           orderId: order.id,
           eventType: "ORDER_DELIVERED",
           dedupeKey: `ORDER_DELIVERED:${order.id}`,
+          previousStatus: order.status,
+          newStatus: d.targetStatus,
+          statusUpdatedAt: now,
         });
       }
 
@@ -154,7 +176,7 @@ export async function transitionAdminOrderStatus(
         status: d.targetStatus,
         fulfilmentStatus: nextFulfilment,
       };
-    });
+    }, { maxWait: 10_000, timeout: 45_000 });
 
     if (!result.idempotentReplay) {
       await recordAdminAuditLog(
@@ -170,6 +192,7 @@ export async function transitionAdminOrderStatus(
       );
     }
 
+    scheduleImmediatePushDispatch();
     return result;
   } catch (error) {
     if (error instanceof OrderRuleError) return { ok: false, error: error.message };
@@ -207,13 +230,14 @@ export async function markOrderPacked(
         throw new OrderRuleError("Cannot pack an unpaid Razorpay order.");
       }
 
+      const now = new Date();
       const nextStatus: OrderStatus = "PROCESSING";
       await tx.order.update({
         where: { id: order.id },
         data: {
           status: nextStatus,
           fulfilmentStatus: "PACKED",
-          packedAt: new Date(),
+          packedAt: now,
           packedByAdminId: actor.adminId,
         },
       });
@@ -229,13 +253,24 @@ export async function markOrderPacked(
         },
       });
 
+      if (order.status !== nextStatus) {
+        await enqueueOrderNotificationInTx(tx, {
+          orderId: order.id,
+          eventType: "ORDER_CONFIRMED",
+          dedupeKey: `ORDER_PROCESSING:${order.id}`,
+          previousStatus: order.status,
+          newStatus: nextStatus,
+          statusUpdatedAt: now,
+        });
+      }
+
       return {
         ok: true as const,
         idempotentReplay: false,
         status: nextStatus,
         fulfilmentStatus: "PACKED" as FulfilmentStatus,
       };
-    });
+    }, { maxWait: 10_000, timeout: 45_000 });
 
     if (!result.idempotentReplay) {
       await recordAdminAuditLog(
@@ -250,6 +285,7 @@ export async function markOrderPacked(
       );
     }
 
+    scheduleImmediatePushDispatch();
     return result;
   } catch (error) {
     if (error instanceof OrderRuleError) return { ok: false, error: error.message };
@@ -282,6 +318,7 @@ export async function dispatchAdminOrder(
         throw new OrderRuleError("Cannot dispatch an unpaid Razorpay order.");
       }
 
+      const now = new Date();
       await tx.order.update({
         where: { id: order.id },
         data: {
@@ -292,7 +329,7 @@ export async function dispatchAdminOrder(
           trackingUrl: d.trackingUrl || null,
           shipmentReference: d.shipmentReference || null,
           shippingNotes: d.shippingNotes || null,
-          shippedAt: new Date(),
+          shippedAt: now,
         },
       });
 
@@ -314,6 +351,9 @@ export async function dispatchAdminOrder(
         courierName: d.carrierName,
         awbCode: d.trackingNumber,
         trackingUrl: d.trackingUrl || null,
+        previousStatus: order.status,
+        newStatus: "SHIPPED",
+        statusUpdatedAt: now,
       });
 
       return {
@@ -322,7 +362,7 @@ export async function dispatchAdminOrder(
         status: "SHIPPED" as OrderStatus,
         fulfilmentStatus: "DISPATCHED" as FulfilmentStatus,
       };
-    });
+    }, { maxWait: 10_000, timeout: 45_000 });
 
     if (!result.idempotentReplay) {
       await recordAdminAuditLog(
@@ -338,6 +378,7 @@ export async function dispatchAdminOrder(
       );
     }
 
+    scheduleImmediatePushDispatch();
     return result;
   } catch (error) {
     if (error instanceof OrderRuleError) return { ok: false, error: error.message };
@@ -404,7 +445,7 @@ export async function confirmCodPaymentCollected(
         status: order.status,
         fulfilmentStatus: order.fulfilmentStatus,
       };
-    });
+    }, { maxWait: 10_000, timeout: 45_000 });
 
     if (!result.idempotentReplay) {
       await recordAdminAuditLog(
@@ -419,6 +460,7 @@ export async function confirmCodPaymentCollected(
       );
     }
 
+    scheduleImmediatePushDispatch();
     return result;
   } catch (error) {
     if (error instanceof OrderRuleError) return { ok: false, error: error.message };
@@ -469,12 +511,13 @@ export async function cancelAdminOrder(
       const manualRefundRequired =
         order.paymentProvider === "RAZORPAY" && order.paymentStatus === "PAID";
 
+      const cancelledAt = new Date();
       await tx.order.update({
         where: { id: order.id },
         data: {
           status: "CANCELLED",
           fulfilmentStatus: "CANCELLED",
-          cancelledAt: new Date(),
+          cancelledAt,
           cancellationReason: d.reason,
           cancellationNotes: d.notes?.trim() || null,
           manualRefundRequired,
@@ -504,7 +547,20 @@ export async function cancelAdminOrder(
         orderId: order.id,
         eventType: "ORDER_CANCELLED",
         dedupeKey: `ORDER_CANCELLED:${order.id}`,
+        previousStatus: order.status,
+        newStatus: "CANCELLED",
+        statusUpdatedAt: cancelledAt,
       });
+      if (manualRefundRequired) {
+        await enqueueAdminBroadcastInTx(tx, {
+          eventType: "REFUND_REQUIRED_ADMIN",
+          dedupeKey: `admin-refund-req:${order.id}`,
+          title: `Manual refund required for ${order.orderNumber}`,
+          body: `Prepaid order ${order.orderNumber} was cancelled and requires manual refund.`,
+          targetUrl: `/admin/orders/${order.id}`,
+          orderId: order.id,
+        });
+      }
 
       return {
         ok: true as const,
@@ -512,7 +568,7 @@ export async function cancelAdminOrder(
         status: "CANCELLED" as OrderStatus,
         fulfilmentStatus: "CANCELLED" as FulfilmentStatus,
       };
-    });
+    }, { maxWait: 10_000, timeout: 45_000 });
 
     if (!result.idempotentReplay) {
       await recordAdminAuditLog(
@@ -528,6 +584,7 @@ export async function cancelAdminOrder(
       );
     }
 
+    scheduleImmediatePushDispatch();
     return result;
   } catch (error) {
     if (error instanceof OrderRuleError) return { ok: false, error: error.message };

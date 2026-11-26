@@ -3,7 +3,11 @@ import { getServerEnv } from "@/config/env";
 import { getPrisma } from "@/lib/prisma";
 import { recordAdminAuditLog } from "@/modules/admin/admin-audit-service";
 import type { AuthenticatedAdmin } from "@/modules/admin/admin-auth-service";
-import { enqueueOrderNotificationInTx } from "@/modules/notifications/notification-outbox-service";
+import {
+  enqueueAdminBroadcastInTx,
+  enqueueOrderNotificationInTx,
+} from "@/modules/notifications/notification-outbox-service";
+import { scheduleImmediatePushDispatch } from "@/modules/notifications/notification-worker-service";
 import { isActiveShipmentStatus } from "../domain/shipment-state-machine";
 import { getShiprocketAuthToken } from "../infrastructure/shiprocket-auth-service";
 import {
@@ -312,8 +316,17 @@ export async function createShiprocketShipment(
           },
         });
       }
+      await enqueueAdminBroadcastInTx(tx, {
+        eventType: "SHIPMENT_EXCEPTION_ADMIN",
+        dedupeKey: `admin-shipment-exc:${draftShipment.id}:${isRetryable ? "reconcile" : "failed"}`,
+        title: "Shipment creation exception",
+        body: message,
+        targetUrl: `/admin/orders/${d.orderId}`,
+        orderId: d.orderId,
+      });
     });
 
+    scheduleImmediatePushDispatch();
     return {
       ok: false,
       error: message,

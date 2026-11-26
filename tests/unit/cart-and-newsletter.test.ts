@@ -9,6 +9,10 @@ vi.mock("next/headers", () => ({
   }),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("@/config/env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/config/env")>();
+  return { ...actual, hasDatabaseUrl: () => false };
+});
 
 import { addToCartAction } from "@/modules/cart/actions";
 import { getCartCount, getCartLines } from "@/modules/cart/cart-store";

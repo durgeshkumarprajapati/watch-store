@@ -1,10 +1,188 @@
 import type { NotificationEventType, Prisma } from "@prisma/client";
+import { emailSchema } from "@/validations/auth";
 import {
   NOTIFICATION_EVENT_CATALOGUE,
   notificationPayloadSchema,
   renderNotificationEmail,
+  renderPushSummaryForOrderEvent,
   type NotificationPayload,
 } from "./notification-templates";
+import { isSafeRelativeTargetUrl } from "./push-validation";
+
+export async function enqueueCustomerInAppAndPushInTx(
+  tx: Prisma.TransactionClient,
+  params: {
+    customerId: string;
+    orderId: string | null;
+    eventType: NotificationEventType;
+    dedupeKey: string;
+    title: string;
+    summaryBody: string;
+    targetUrl: string;
+    shippingUpdatesEnabledCheck: boolean;
+  },
+) {
+  const safeUrl = isSafeRelativeTargetUrl(params.targetUrl);
+  const inAppDedupe = `IN_APP:${params.dedupeKey}`;
+  const existingInApp = await tx.notification.findUnique({
+    where: { dedupeKey: inAppDedupe },
+    select: { id: true },
+  });
+  if (!existingInApp) {
+    await tx.notification.create({
+      data: {
+        customerId: params.customerId,
+        orderId: params.orderId,
+        eventType: params.eventType,
+        channel: "IN_APP",
+        recipient: params.customerId,
+        subject: params.title,
+        payload: { summaryBody: params.summaryBody } as Prisma.InputJsonValue,
+        targetUrl: safeUrl,
+        status: "SENT",
+        provider: "IN_APP",
+        dedupeKey: inAppDedupe,
+        sentAt: new Date(),
+      },
+    });
+  }
+
+  if (!params.shippingUpdatesEnabledCheck) return;
+  if (!tx.pushSubscription) return;
+
+  const subs = await tx.pushSubscription.findMany({
+    where: { customerId: params.customerId, isActive: true },
+    select: { id: true },
+  });
+  for (const sub of subs) {
+    const pushDedupe = `PUSH:${params.dedupeKey}:${sub.id}`;
+    const existingPush = await tx.notification.findUnique({
+      where: { dedupeKey: pushDedupe },
+      select: { id: true },
+    });
+    if (existingPush) continue;
+
+    const pushNotif = await tx.notification.create({
+      data: {
+        customerId: params.customerId,
+        pushSubscriptionId: sub.id,
+        orderId: params.orderId,
+        eventType: params.eventType,
+        channel: "PUSH",
+        recipient: sub.id,
+        subject: params.title,
+        payload: {
+          title: params.title,
+          body: params.summaryBody,
+          url: safeUrl,
+          tag: params.dedupeKey,
+        } as Prisma.InputJsonValue,
+        targetUrl: safeUrl,
+        status: "PENDING",
+        provider: "WEB_PUSH",
+        dedupeKey: pushDedupe,
+      },
+    });
+    await tx.notificationJob.create({
+      data: { notificationId: pushNotif.id, status: "PENDING" },
+    });
+  }
+}
+
+/**
+ * Broadcasts an admin notification to ALL active, email-verified AdminUser accounts
+ * across IN_APP and every active PushSubscription (zero role/permission filtering).
+ */
+export async function enqueueAdminBroadcastInTx(
+  tx: Prisma.TransactionClient,
+  params: {
+    eventType: NotificationEventType;
+    dedupeKey: string;
+    title: string;
+    body: string;
+    targetUrl: string;
+    orderId?: string | null;
+  },
+): Promise<{ adminCount: number; pushJobsCreated: number }> {
+  const safeUrl = isSafeRelativeTargetUrl(params.targetUrl);
+  const activeAdmins = await tx.adminUser.findMany({
+    where: {
+      isActive: true,
+      user: { emailVerified: { not: null } },
+    },
+    select: {
+      id: true,
+      pushSubscriptions: {
+        where: { isActive: true },
+        select: { id: true },
+      },
+    },
+  });
+
+  let pushJobsCreated = 0;
+  for (const admin of activeAdmins) {
+    const inAppDedupe = `IN_APP:${params.dedupeKey}:${admin.id}`;
+    const existingInApp = await tx.notification.findUnique({
+      where: { dedupeKey: inAppDedupe },
+      select: { id: true },
+    });
+    if (!existingInApp) {
+      await tx.notification.create({
+        data: {
+          adminUserId: admin.id,
+          orderId: params.orderId ?? null,
+          eventType: params.eventType,
+          channel: "IN_APP",
+          recipient: admin.id,
+          subject: params.title,
+          payload: { summaryBody: params.body } as Prisma.InputJsonValue,
+          targetUrl: safeUrl,
+          status: "SENT",
+          provider: "IN_APP",
+          dedupeKey: inAppDedupe,
+          sentAt: new Date(),
+        },
+      });
+    }
+
+    for (const sub of admin.pushSubscriptions) {
+      const pushDedupe = `PUSH:${params.dedupeKey}:${sub.id}`;
+      const existingPush = await tx.notification.findUnique({
+        where: { dedupeKey: pushDedupe },
+        select: { id: true },
+      });
+      if (existingPush) continue;
+
+      const pushNotif = await tx.notification.create({
+        data: {
+          adminUserId: admin.id,
+          pushSubscriptionId: sub.id,
+          orderId: params.orderId ?? null,
+          eventType: params.eventType,
+          channel: "PUSH",
+          recipient: sub.id,
+          subject: params.title,
+          payload: {
+            title: params.title,
+            body: params.body,
+            url: safeUrl,
+            tag: params.dedupeKey,
+          } as Prisma.InputJsonValue,
+          targetUrl: safeUrl,
+          status: "PENDING",
+          provider: "WEB_PUSH",
+          dedupeKey: pushDedupe,
+        },
+      });
+      await tx.notificationJob.create({
+        data: { notificationId: pushNotif.id, status: "PENDING" },
+      });
+      pushJobsCreated += 1;
+    }
+  }
+
+  return { adminCount: activeAdmins.length, pushJobsCreated };
+}
 
 export async function enqueueNotificationInTx(
   tx: Prisma.TransactionClient,
@@ -20,14 +198,33 @@ export async function enqueueNotificationInTx(
   const parsedPayload = notificationPayloadSchema.parse(params.payload);
   const meta = NOTIFICATION_EVENT_CATALOGUE[params.eventType];
 
+  let shippingEnabled = true;
   if (!meta.isMandatory && params.customerId) {
     const pref = await tx.notificationPreference.findUnique({
       where: { customerId: params.customerId },
       select: { shippingUpdatesEnabled: true },
     });
     if (pref && !pref.shippingUpdatesEnabled) {
-      return { created: false };
+      shippingEnabled = false;
     }
+  }
+
+  if (params.customerId) {
+    const pushSummary = renderPushSummaryForOrderEvent(params.eventType, parsedPayload);
+    await enqueueCustomerInAppAndPushInTx(tx, {
+      customerId: params.customerId,
+      orderId: params.orderId,
+      eventType: params.eventType,
+      dedupeKey: params.dedupeKey,
+      title: pushSummary.title,
+      summaryBody: pushSummary.body,
+      targetUrl: pushSummary.url,
+      shippingUpdatesEnabledCheck: shippingEnabled,
+    });
+  }
+
+  if (!shippingEnabled) {
+    return { created: false };
   }
 
   const existing = await tx.notification.findUnique({
@@ -49,6 +246,7 @@ export async function enqueueNotificationInTx(
       recipient: params.recipient,
       subject: rendered.subject,
       payload: parsedPayload as unknown as Prisma.InputJsonValue,
+      targetUrl: `/account/orders/${encodeURIComponent(parsedPayload.orderId)}`,
       status: "PENDING",
       provider: "RESEND",
       dedupeKey: params.dedupeKey,
@@ -74,17 +272,35 @@ export async function enqueueOrderNotificationInTx(
     courierName?: string | null;
     awbCode?: string | null;
     trackingUrl?: string | null;
+    expectedDelivery?: string | null;
+    previousStatus?: string | null;
+    newStatus?: string | null;
+    statusUpdatedAt?: Date | string | null;
   },
 ): Promise<{ created: boolean; notificationId?: string }> {
   const order = await tx.order.findUnique({
     where: { id: params.orderId },
     include: {
+      customer: { select: { email: true, fullName: true } },
       items: true,
       addressSnapshot: true,
       shipments: { orderBy: { createdAt: "desc" }, take: 1 },
     },
   });
   if (!order) return { created: false };
+
+  const authoritativeEmailRaw = order.customer?.email?.trim() || order.guestEmail?.trim() || "";
+  const parsedEmail = emailSchema.safeParse(authoritativeEmailRaw);
+  if (!parsedEmail.success) {
+    return { created: false };
+  }
+
+  const customerName =
+    order.customer?.fullName?.trim() || order.guestName?.trim() || "Valued Customer";
+  const statusUpdatedAtIso =
+    params.statusUpdatedAt instanceof Date
+      ? params.statusUpdatedAt.toISOString()
+      : params.statusUpdatedAt ?? undefined;
 
   const latestShipment = order.shipments[0];
   const addr = order.addressSnapshot;
@@ -96,12 +312,12 @@ export async function enqueueOrderNotificationInTx(
     customerId: order.customerId,
     orderId: order.id,
     eventType: params.eventType,
-    recipient: order.guestEmail,
+    recipient: parsedEmail.data,
     dedupeKey: params.dedupeKey,
     payload: {
       orderId: order.id,
       orderNumber: order.orderNumber,
-      customerName: order.guestName,
+      customerName,
       orderDateIso: order.createdAt.toISOString(),
       paymentMethod: order.paymentProvider,
       paymentStatus: order.paymentStatus,
@@ -116,6 +332,10 @@ export async function enqueueOrderNotificationInTx(
       courierName: params.courierName ?? latestShipment?.courierName ?? order.carrierName,
       awbCode: params.awbCode ?? latestShipment?.awbCode ?? order.trackingNumber,
       trackingUrl: params.trackingUrl ?? latestShipment?.trackingUrl ?? order.trackingUrl,
+      expectedDelivery: params.expectedDelivery ?? undefined,
+      previousStatus: params.previousStatus ?? undefined,
+      newStatus: params.newStatus ?? undefined,
+      statusUpdatedAt: statusUpdatedAtIso,
       cancellationReason: order.cancellationReason,
       manualRefundRequired: order.manualRefundRequired,
     },

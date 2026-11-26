@@ -8,6 +8,11 @@ import {
   buildVerificationEmail,
   sendTransactionalEmail,
 } from "@/modules/notifications/email-service";
+import {
+  enqueueAdminBroadcastInTx,
+  enqueueCustomerInAppAndPushInTx,
+} from "@/modules/notifications/notification-outbox-service";
+import { scheduleImmediatePushDispatch } from "@/modules/notifications/notification-worker-service";
 import { linkVerifiedUserToCustomerInTx } from "./customer-link-service";
 import { hashPassword } from "./password-service";
 import { consumeAuthActionTokenInTx, createAuthActionToken } from "./token-service";
@@ -56,6 +61,21 @@ export async function registerCustomerAccount(
   const verifyUrl = `${baseUrl}/verify-email?token=${encodeURIComponent(rawToken)}`;
   const emailPayload = buildVerificationEmail({ name: input.fullName.trim(), verifyUrl });
   const emailRes = await sendTransactionalEmail({ to: email, ...emailPayload });
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await enqueueAdminBroadcastInTx(tx, {
+        eventType: "NEW_CUSTOMER_ADMIN",
+        dedupeKey: `admin-new-customer:${userId}`,
+        title: "New customer registered",
+        body: `${input.fullName.trim()} (${email}) created an account.`,
+        targetUrl: "/admin/customers",
+      });
+    });
+    scheduleImmediatePushDispatch();
+  } catch {
+    // Best-effort admin alert; never fail registration.
+  }
 
   return {
     ok: true,
@@ -181,6 +201,23 @@ export async function resetPasswordWithToken(
         sessionVersion: { increment: 1 },
       },
     });
+
+    const customer = await tx.customer.findUnique({
+      where: { authUserId: consumed.userId },
+      select: { id: true },
+    });
+    if (customer) {
+      await enqueueCustomerInAppAndPushInTx(tx, {
+        customerId: customer.id,
+        orderId: null,
+        eventType: "SECURITY_ALERT",
+        dedupeKey: `security-pwd-reset:${consumed.userId}:${Date.now()}`,
+        title: "Your WatchStore password was changed",
+        summaryBody: "Your account password was recently reset. If this was not you, contact support immediately.",
+        targetUrl: "/account/notifications",
+        shippingUpdatesEnabledCheck: false,
+      });
+    }
 
     return { ok: true, message: "Password updated successfully. Please sign in with your new password." };
   });

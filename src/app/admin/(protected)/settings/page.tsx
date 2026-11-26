@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BrowserPushSettings } from "@/components/notifications/browser-push-settings";
 import { Badge } from "@/components/ui/badge";
 import { brand } from "@/config/brand";
 import { getServerEnv } from "@/config/env";
@@ -20,6 +21,10 @@ export default async function AdminSettingsPage() {
     { name: "Razorpay Payments", configured: Boolean(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET) },
     { name: "Shiprocket Shipping", configured: Boolean(env.SHIPROCKET_API_EMAIL && env.SHIPROCKET_API_PASSWORD) },
     { name: "Resend Transactional Email", configured: Boolean(env.RESEND_API_KEY) },
+    {
+      name: "VAPID Browser Push",
+      configured: Boolean(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.VAPID_SUBJECT),
+    },
     {
       name: "Cloudinary Media Storage",
       configured: Boolean(
@@ -76,6 +81,8 @@ export default async function AdminSettingsPage() {
           </div>
         </section>
       </div>
+
+      <BrowserPushSettings enableAdminTest />
     </div>
   );
 }

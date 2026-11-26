@@ -54,6 +54,51 @@ export const NOTIFICATION_EVENT_CATALOGUE: Record<
     isMandatory: true,
     description: "Sent when an order cancellation is committed.",
   },
+  SECURITY_ALERT: {
+    label: "Security Alert",
+    isMandatory: true,
+    description: "Sent for important account security events.",
+  },
+  NEW_ORDER_ADMIN: {
+    label: "New Order (Admin)",
+    isMandatory: true,
+    description: "Admin alert when a new order is placed.",
+  },
+  PAYMENT_RECEIVED_ADMIN: {
+    label: "Payment Received (Admin)",
+    isMandatory: true,
+    description: "Admin alert when a payment is captured.",
+  },
+  PAYMENT_FAILED_ADMIN: {
+    label: "Payment Failed (Admin)",
+    isMandatory: true,
+    description: "Admin alert when a payment attempt fails.",
+  },
+  NEW_CUSTOMER_ADMIN: {
+    label: "New Customer (Admin)",
+    isMandatory: true,
+    description: "Admin alert when a new customer account registers.",
+  },
+  LOW_STOCK_ADMIN: {
+    label: "Low Stock Alert (Admin)",
+    isMandatory: true,
+    description: "Admin alert when product stock reaches low-stock threshold.",
+  },
+  SHIPMENT_EXCEPTION_ADMIN: {
+    label: "Shipment Exception (Admin)",
+    isMandatory: true,
+    description: "Admin alert when shipment creation or tracking fails.",
+  },
+  REFUND_REQUIRED_ADMIN: {
+    label: "Manual Refund Required (Admin)",
+    isMandatory: true,
+    description: "Admin alert when a prepaid order cancellation requires manual refund.",
+  },
+  NOTIFICATION_FAILED_ADMIN: {
+    label: "Notification Delivery Failure (Admin)",
+    isMandatory: true,
+    description: "Admin alert when an outbound notification enters dead-letter.",
+  },
 };
 
 export const notificationPayloadSchema = z.object({
@@ -78,6 +123,10 @@ export const notificationPayloadSchema = z.object({
   courierName: z.string().nullable().optional(),
   awbCode: z.string().nullable().optional(),
   trackingUrl: z.string().nullable().optional(),
+  expectedDelivery: z.string().nullable().optional(),
+  previousStatus: z.string().optional(),
+  newStatus: z.string().optional(),
+  statusUpdatedAt: z.string().optional(),
   cancellationReason: z.string().nullable().optional(),
   manualRefundRequired: z.boolean().optional(),
 });
@@ -97,7 +146,15 @@ function safeHttpsUrl(url?: string | null): string | null {
 function getOrderSubjectAndHeading(
   eventType: NotificationEventType,
   orderNumber: string,
+  newStatus?: string,
 ): { subject: string; heading: string; intro: string } {
+  if (eventType === "ORDER_CONFIRMED" && newStatus === "PROCESSING") {
+    return {
+      subject: `${brand.name} — Order ${orderNumber} Is Being Prepared`,
+      heading: "Your Order Is Being Prepared",
+      intro: `Your order ${orderNumber} is now in processing and being prepared by our watchmakers for insured dispatch.`,
+    };
+  }
   switch (eventType) {
     case "ORDER_CONFIRMED":
       return {
@@ -153,6 +210,54 @@ function getOrderSubjectAndHeading(
         heading: "Order Cancelled",
         intro: `Your order ${orderNumber} has been cancelled.`,
       };
+    default:
+      return {
+        subject: `${brand.name} — Order ${orderNumber} Update`,
+        heading: "Order Update",
+        intro: `There is an update on your order ${orderNumber}.`,
+      };
+  }
+}
+
+export function renderPushSummaryForOrderEvent(
+  eventType: NotificationEventType,
+  payload: NotificationPayload,
+): { title: string; body: string; url: string } {
+  const url = `/account/orders/${encodeURIComponent(payload.orderId)}`;
+  if (eventType === "ORDER_CONFIRMED" && payload.newStatus === "PROCESSING") {
+    return {
+      title: `${brand.name}: Order Being Prepared`,
+      body: `Order ${payload.orderNumber} is now in processing.`,
+      url,
+    };
+  }
+  switch (eventType) {
+    case "ORDER_CONFIRMED":
+      return { title: `${brand.name}: Order Confirmed`, body: `Order ${payload.orderNumber} is confirmed.`, url };
+    case "COD_ORDER_CONFIRMED":
+      return { title: `${brand.name}: COD Order Confirmed`, body: `Order ${payload.orderNumber} is confirmed.`, url };
+    case "PAYMENT_SUCCESS":
+      return { title: `${brand.name}: Payment Received`, body: `Payment for order ${payload.orderNumber} succeeded.`, url };
+    case "PAYMENT_FAILED":
+      return { title: `${brand.name}: Payment Issue`, body: `Payment for order ${payload.orderNumber} could not be completed.`, url };
+    case "SHIPMENT_CREATED":
+      return { title: `${brand.name}: Shipment Prepared`, body: `Shipment prepared for order ${payload.orderNumber}.`, url };
+    case "SHIPMENT_DISPATCHED":
+      return {
+        title: `${brand.name}: Order Dispatched`,
+        body: payload.courierName
+          ? `Order ${payload.orderNumber} shipped via ${payload.courierName}.`
+          : `Order ${payload.orderNumber} has been dispatched.`,
+        url,
+      };
+    case "OUT_FOR_DELIVERY":
+      return { title: `${brand.name}: Out for Delivery`, body: `Order ${payload.orderNumber} is out for delivery today.`, url };
+    case "ORDER_DELIVERED":
+      return { title: `${brand.name}: Order Delivered`, body: `Order ${payload.orderNumber} has been delivered.`, url };
+    case "ORDER_CANCELLED":
+      return { title: `${brand.name}: Order Cancelled`, body: `Order ${payload.orderNumber} has been cancelled.`, url };
+    default:
+      return { title: `${brand.name}: Order Update`, body: `Update available for order ${payload.orderNumber}.`, url };
   }
 }
 
@@ -161,7 +266,11 @@ export function renderNotificationEmail(
   rawPayload: NotificationPayload,
 ): { subject: string; html: string; text: string } {
   const payload = notificationPayloadSchema.parse(rawPayload);
-  const { subject, heading, intro } = getOrderSubjectAndHeading(eventType, payload.orderNumber);
+  const { subject, heading, intro } = getOrderSubjectAndHeading(
+    eventType,
+    payload.orderNumber,
+    payload.newStatus,
+  );
   const baseUrl = getServerEnv().AUTH_URL ?? "http://localhost:3000";
   const orderLink = `${baseUrl.replace(/\/$/, "")}/account/orders/${encodeURIComponent(payload.orderId)}`;
   const trackingUrl = safeHttpsUrl(payload.trackingUrl);
@@ -177,6 +286,21 @@ export function renderNotificationEmail(
     )
     .join("");
 
+  const statusTransitionLine =
+    payload.previousStatus && payload.newStatus
+      ? `Status Update: ${payload.previousStatus} -> ${payload.newStatus}`
+      : payload.newStatus
+        ? `Order Status: ${payload.newStatus}`
+        : "";
+  const statusUpdatedLine = payload.statusUpdatedAt
+    ? `Updated At: ${payload.statusUpdatedAt}`
+    : "";
+
+  const cancellationReasonLine =
+    eventType === "ORDER_CANCELLED" && payload.cancellationReason
+      ? `Cancellation Reason: ${payload.cancellationReason}`
+      : "";
+
   const refundLine =
     eventType === "ORDER_CANCELLED" && payload.manualRefundRequired
       ? "Refund status: Pending manual refund processing by our concierge team."
@@ -185,6 +309,7 @@ export function renderNotificationEmail(
   const trackingLines = [
     payload.courierName ? `Courier: ${payload.courierName}` : "",
     payload.awbCode ? `Tracking / AWB: ${payload.awbCode}` : "",
+    payload.expectedDelivery ? `Expected Delivery: ${payload.expectedDelivery}` : "",
     trackingUrl ? `Track Shipment: ${trackingUrl}` : "",
   ]
     .filter(Boolean)
@@ -194,6 +319,9 @@ export function renderNotificationEmail(
     `Hello ${payload.customerName},`,
     "",
     intro,
+    statusTransitionLine,
+    statusUpdatedLine,
+    cancellationReasonLine,
     refundLine,
     "",
     `Order Number: ${payload.orderNumber}`,
@@ -223,13 +351,23 @@ export function renderNotificationEmail(
         <h1 style="margin:0 0 12px;font-size:24px;color:#171717;">${escapeHtml(heading)}</h1>
         <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#333;">Hello ${escapeHtml(payload.customerName)},</p>
         <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#333;">${escapeHtml(intro)}</p>
+        ${
+          statusTransitionLine || statusUpdatedLine
+            ? `<div style="margin:0 0 16px;padding:10px 12px;background:#F5F2EC;border:1px solid #E5DED3;font-size:13px;color:#333;">
+                ${statusTransitionLine ? `<div><strong>${escapeHtml(statusTransitionLine)}</strong></div>` : ""}
+                ${statusUpdatedLine ? `<div>${escapeHtml(statusUpdatedLine)}</div>` : ""}
+              </div>`
+            : ""
+        }
+        ${cancellationReasonLine ? `<p style="margin:0 0 12px;font-size:14px;color:#333;"><strong>${escapeHtml(cancellationReasonLine)}</strong></p>` : ""}
         ${refundLine ? `<p style="margin:0 0 16px;padding:12px;background:#F5F2EC;border-left:3px solid #A87832;font-size:14px;">${escapeHtml(refundLine)}</p>` : ""}
         ${
-          payload.awbCode || payload.courierName
+          payload.awbCode || payload.courierName || payload.expectedDelivery || trackingUrl
             ? `<div style="margin:0 0 16px;padding:12px;background:#F5F2EC;border:1px solid #E5DED3;font-size:14px;">
                 <strong>Shipment Details</strong><br/>
                 ${payload.courierName ? `Courier: ${escapeHtml(payload.courierName)}<br/>` : ""}
                 ${payload.awbCode ? `AWB / Tracking: <span style="font-family:monospace;">${escapeHtml(payload.awbCode)}</span><br/>` : ""}
+                ${payload.expectedDelivery ? `Expected Delivery: ${escapeHtml(payload.expectedDelivery)}<br/>` : ""}
                 ${trackingUrl ? `<a href="${escapeHtml(trackingUrl)}" style="color:#A87832;">Track Shipment</a>` : ""}
               </div>`
             : ""

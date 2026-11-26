@@ -37,6 +37,22 @@ const serverEnvSchema = z.object({
   CLOUDINARY_CLOUD_NAME: z.string().trim().min(1).optional(),
   CLOUDINARY_API_KEY: z.string().trim().min(1).optional(),
   CLOUDINARY_API_SECRET: z.string().trim().min(1).optional(),
+  SELLER_LEGAL_NAME: z.string().trim().min(2).optional(),
+  SELLER_ADDRESS: z.string().trim().min(5).optional(),
+  SELLER_STATE: z.string().trim().min(2).optional(),
+  SELLER_GSTIN: z.string().trim().min(15).max(15).optional(),
+  SELLER_EMAIL: z.string().trim().email().optional(),
+  SELLER_PHONE: z.string().trim().min(5).optional(),
+  VAPID_PUBLIC_KEY: z.string().trim().min(20).optional(),
+  VAPID_PRIVATE_KEY: z.string().trim().min(20).optional(),
+  VAPID_SUBJECT: z
+    .string()
+    .trim()
+    .refine(
+      (v) => v.startsWith("mailto:") || v.startsWith("https://"),
+      "VAPID_SUBJECT must start with mailto: or https://",
+    )
+    .optional(),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
@@ -70,6 +86,15 @@ export function getServerEnv(): ServerEnv {
     CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME || undefined,
     CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || undefined,
     CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || undefined,
+    SELLER_LEGAL_NAME: process.env.SELLER_LEGAL_NAME || undefined,
+    SELLER_ADDRESS: process.env.SELLER_ADDRESS || undefined,
+    SELLER_STATE: process.env.SELLER_STATE || undefined,
+    SELLER_GSTIN: process.env.SELLER_GSTIN || undefined,
+    SELLER_EMAIL: process.env.SELLER_EMAIL || undefined,
+    SELLER_PHONE: process.env.SELLER_PHONE || undefined,
+    VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY || undefined,
+    VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY || undefined,
+    VAPID_SUBJECT: process.env.VAPID_SUBJECT || undefined,
   });
 
   if (!parsed.success) {
@@ -185,6 +210,14 @@ export function validateProductionEnv(opts?: {
   ];
   if (cloudParts.some(Boolean) && !cloudParts.every(Boolean)) {
     errors.push("CLOUDINARY_CLOUD_NAME/CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET");
+  }
+  const vapidParts = [
+    Boolean(src.VAPID_PUBLIC_KEY?.trim()),
+    Boolean(src.VAPID_PRIVATE_KEY?.trim()),
+    Boolean(src.VAPID_SUBJECT?.trim()),
+  ];
+  if (vapidParts.some(Boolean) && !vapidParts.every(Boolean)) {
+    errors.push("VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY/VAPID_SUBJECT");
   }
 
   const uniqueErrors = Array.from(new Set(errors));

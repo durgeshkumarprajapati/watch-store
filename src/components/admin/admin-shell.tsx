@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { brand } from "@/config/brand";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Icon } from "@/components/ui/icon";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { cn } from "@/lib/cn";
@@ -67,6 +68,11 @@ function SidebarContent({
         {visibleNav.map((i) => (
           <NavLink key={i.href} item={i} active={isActive(i.href)} onClick={onNavigate} />
         ))}
+        <NavLink
+          item={{ href: "/admin/inbox", label: "Inbox & Push", icon: "notifications" } as AdminNavItem}
+          active={isActive("/admin/inbox")}
+          onClick={onNavigate}
+        />
         {showSettings && (
           <NavLink
             item={adminSettingsNav}
@@ -124,6 +130,7 @@ export function AdminShell({
             </span>
           </div>
           <div className="flex items-center gap-3">
+            <NotificationBell allNotificationsHref="/admin/inbox" />
             <ThemeToggle />
             <div className="flex items-center gap-2.5 pl-2 border-l border-outline">
               <div className="w-9 h-9 rounded-full bg-secondary text-on-secondary flex items-center justify-center font-label text-label-sm">

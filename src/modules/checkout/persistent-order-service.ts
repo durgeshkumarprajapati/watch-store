@@ -7,6 +7,8 @@ import { COD_MAX_ORDER_PAISE, computeCartSummary } from "@/modules/cart/cart-ser
 import type { CartLine } from "@/modules/cart/cart-store";
 import type { Product } from "@/modules/catalogue/types";
 import { InsufficientStockError, reserveStockInTx } from "@/modules/inventory/reservation-service";
+import { enqueueAdminBroadcastInTx } from "@/modules/notifications/notification-outbox-service";
+import { scheduleImmediatePushDispatch } from "@/modules/notifications/notification-worker-service";
 import type { ValidatedCheckoutInput } from "@/validations/checkout";
 import { canTransitionOrderStatus } from "./status-transitions";
 
@@ -321,9 +323,48 @@ export async function createPersistentOrder(
         });
       }
 
-      return { order: mapPersistedOrder(created), idempotentReplay: false };
-    });
+      await enqueueAdminBroadcastInTx(tx, {
+        eventType: "NEW_ORDER_ADMIN",
+        dedupeKey: `admin-new-order:${created.id}`,
+        title: `New Order ${created.orderNumber}`,
+        body: `₹${(created.grandTotalPaise / 100).toLocaleString("en-IN")} (${provider})`,
+        targetUrl: `/admin/orders/${created.id}`,
+        orderId: created.id,
+      });
 
+      const affectedProducts = await tx.product.findMany({
+        where: { id: { in: created.items.map((item) => item.productId) } },
+        select: {
+          id: true,
+          name: true,
+          sku: true,
+          stock: {
+            select: {
+              available: true,
+              lowStockThreshold: true,
+            },
+          },
+        },
+      });
+      for (const product of affectedProducts) {
+        if (!product.stock) continue;
+        const available = Math.max(0, product.stock.available);
+        if (available <= product.stock.lowStockThreshold) {
+          await enqueueAdminBroadcastInTx(tx, {
+            eventType: "LOW_STOCK_ADMIN",
+            dedupeKey: `admin-low-stock:${product.id}:${created.id}`,
+            title: `Low Stock: ${product.name}`,
+            body: `SKU ${product.sku} has ${available} available (threshold ${product.stock.lowStockThreshold}).`,
+            targetUrl: "/admin/inventory",
+            orderId: created.id,
+          });
+        }
+      }
+
+      return { order: mapPersistedOrder(created), idempotentReplay: false };
+    }, { maxWait: 10000, timeout: 25000 });
+
+    scheduleImmediatePushDispatch();
     return { ok: true, ...outcome };
   } catch (err) {
     // Concurrent duplicate request hit unique idempotencyKey constraint
