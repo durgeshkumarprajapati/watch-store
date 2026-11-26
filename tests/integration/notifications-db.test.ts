@@ -22,6 +22,8 @@ import {
 } from "@/modules/payments/application/payment-settlement";
 import {
   cancelAdminOrder,
+  dispatchAdminOrder,
+  markOrderPacked,
   transitionAdminOrderStatus,
 } from "@/modules/admin/orders/admin-order-transition-service";
 import {
@@ -275,5 +277,79 @@ describeWithDb("Phase 13 Transactional Notifications PostgreSQL integration", ()
     // Retrying a SENT notification is rejected
     const retrySent = await retryAdminNotification(actor, notif.id, prisma);
     expect(retrySent.ok).toBe(false);
+  });
+
+  it("queues notifications for CONFIRMED -> PROCESSING -> SHIPPED -> DELIVERED and skips invalid/same-status transitions", async () => {
+    const suffix = `flow-${Date.now()}`;
+    const placed = await placeOrder("cod", suffix);
+    const orderId = placed.id;
+    const email = placed.guestEmail;
+
+    // Failed transition (PENDING -> DELIVERED) must not enqueue notification
+    const invalid = await transitionAdminOrderStatus(
+      actor,
+      { orderId, targetStatus: "DELIVERED", idempotencyKey: `p13-inv-${suffix}` },
+      prisma,
+    );
+    expect(invalid.ok).toBe(false);
+    expect(await prisma.notification.count({ where: { orderId } })).toBe(0);
+
+    // CONFIRMED (COD)
+    const confirmed = await transitionAdminOrderStatus(
+      actor,
+      { orderId, targetStatus: "CONFIRMED", idempotencyKey: `p13-cnf-${suffix}` },
+      prisma,
+    );
+    expect(confirmed.ok).toBe(true);
+
+    // Same-status transition (CONFIRMED -> CONFIRMED) fails and creates no duplicate
+    const sameStatus = await transitionAdminOrderStatus(
+      actor,
+      { orderId, targetStatus: "CONFIRMED", idempotencyKey: `p13-same-${suffix}` },
+      prisma,
+    );
+    expect(sameStatus.ok).toBe(false);
+
+    // PROCESSING via markOrderPacked
+    const packed = await markOrderPacked(
+      actor,
+      { orderId, idempotencyKey: `p13-pack-${suffix}` },
+      prisma,
+    );
+    expect(packed.ok).toBe(true);
+
+    // SHIPPED via dispatchAdminOrder
+    const shipped = await dispatchAdminOrder(
+      actor,
+      {
+        orderId,
+        carrierName: "BlueDart Air",
+        trackingNumber: `BD-${suffix}`,
+        trackingUrl: "https://bluedart.com/track/123",
+        idempotencyKey: `p13-ship-${suffix}`,
+      },
+      prisma,
+    );
+    expect(shipped.ok).toBe(true);
+
+    // DELIVERED
+    const delivered = await transitionAdminOrderStatus(
+      actor,
+      { orderId, targetStatus: "DELIVERED", idempotencyKey: `p13-del-${suffix}` },
+      prisma,
+    );
+    expect(delivered.ok).toBe(true);
+
+    const notifs = await prisma.notification.findMany({
+      where: { orderId },
+      orderBy: { createdAt: "asc" },
+    });
+    expect(notifs.map((n) => n.dedupeKey)).toEqual([
+      `COD_ORDER_CONFIRMED:${orderId}`,
+      `ORDER_PROCESSING:${orderId}`,
+      `SHIPMENT_DISPATCHED:${orderId}`,
+      `ORDER_DELIVERED:${orderId}`,
+    ]);
+    expect(notifs.every((n) => n.recipient === email)).toBe(true);
   });
 });

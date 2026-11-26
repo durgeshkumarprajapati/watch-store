@@ -1,4 +1,5 @@
 import type { NotificationEventType, Prisma } from "@prisma/client";
+import { emailSchema } from "@/validations/auth";
 import {
   NOTIFICATION_EVENT_CATALOGUE,
   notificationPayloadSchema,
@@ -74,17 +75,35 @@ export async function enqueueOrderNotificationInTx(
     courierName?: string | null;
     awbCode?: string | null;
     trackingUrl?: string | null;
+    expectedDelivery?: string | null;
+    previousStatus?: string | null;
+    newStatus?: string | null;
+    statusUpdatedAt?: Date | string | null;
   },
 ): Promise<{ created: boolean; notificationId?: string }> {
   const order = await tx.order.findUnique({
     where: { id: params.orderId },
     include: {
+      customer: { select: { email: true, fullName: true } },
       items: true,
       addressSnapshot: true,
       shipments: { orderBy: { createdAt: "desc" }, take: 1 },
     },
   });
   if (!order) return { created: false };
+
+  const authoritativeEmailRaw = order.customer?.email?.trim() || order.guestEmail?.trim() || "";
+  const parsedEmail = emailSchema.safeParse(authoritativeEmailRaw);
+  if (!parsedEmail.success) {
+    return { created: false };
+  }
+
+  const customerName =
+    order.customer?.fullName?.trim() || order.guestName?.trim() || "Valued Customer";
+  const statusUpdatedAtIso =
+    params.statusUpdatedAt instanceof Date
+      ? params.statusUpdatedAt.toISOString()
+      : params.statusUpdatedAt ?? undefined;
 
   const latestShipment = order.shipments[0];
   const addr = order.addressSnapshot;
@@ -96,12 +115,12 @@ export async function enqueueOrderNotificationInTx(
     customerId: order.customerId,
     orderId: order.id,
     eventType: params.eventType,
-    recipient: order.guestEmail,
+    recipient: parsedEmail.data,
     dedupeKey: params.dedupeKey,
     payload: {
       orderId: order.id,
       orderNumber: order.orderNumber,
-      customerName: order.guestName,
+      customerName,
       orderDateIso: order.createdAt.toISOString(),
       paymentMethod: order.paymentProvider,
       paymentStatus: order.paymentStatus,
@@ -116,6 +135,10 @@ export async function enqueueOrderNotificationInTx(
       courierName: params.courierName ?? latestShipment?.courierName ?? order.carrierName,
       awbCode: params.awbCode ?? latestShipment?.awbCode ?? order.trackingNumber,
       trackingUrl: params.trackingUrl ?? latestShipment?.trackingUrl ?? order.trackingUrl,
+      expectedDelivery: params.expectedDelivery ?? undefined,
+      previousStatus: params.previousStatus ?? undefined,
+      newStatus: params.newStatus ?? undefined,
+      statusUpdatedAt: statusUpdatedAtIso,
       cancellationReason: order.cancellationReason,
       manualRefundRequired: order.manualRefundRequired,
     },
