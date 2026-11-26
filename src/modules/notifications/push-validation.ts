@@ -3,7 +3,7 @@ import { z } from "zod";
 const ALLOWED_PUSH_HOST_PATTERNS: RegExp[] = [
   /^fcm\.googleapis\.com$/i,
   /^android\.googleapis\.com$/i,
-  /^updates\.push\.services\.mozilla\.com$/i,
+  /^([a-z0-9-]+\.)*push\.services\.mozilla\.com$/i,
   /^[a-z0-9-]+\.push\.apple\.com$/i,
   /^web\.push\.apple\.com$/i,
   /^[a-z0-9-]+\.notify\.windows\.com$/i,
