@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import type { Customer } from "@prisma/client";
 import { hasDatabaseUrl } from "@/config/env";
 import { getPrisma } from "@/lib/prisma";
+import { getAuthenticatedAdmin } from "@/modules/admin/admin-auth-service";
 import { auth } from "./auth";
 import { linkVerifiedUserToCustomerInTx } from "./customer-link-service";
 
@@ -46,6 +47,9 @@ export async function getAuthenticatedCustomer(): Promise<Customer | null> {
 }
 
 export async function requireAuthenticatedCustomerPage(): Promise<Customer> {
+  const admin = await getAuthenticatedAdmin();
+  if (admin) redirect("/admin/dashboard");
+
   const customer = await getAuthenticatedCustomer();
   if (!customer) redirect("/login");
   return customer;
