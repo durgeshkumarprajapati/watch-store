@@ -11,6 +11,10 @@ export function getPrisma(): PrismaClient {
   if (!globalForPrisma.__watchStorePrisma) {
     globalForPrisma.__watchStorePrisma = new PrismaClient({
       log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+      transactionOptions: {
+        maxWait: 10_000,
+        timeout: 45_000,
+      },
     });
   }
   return globalForPrisma.__watchStorePrisma;

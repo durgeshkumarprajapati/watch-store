@@ -172,7 +172,7 @@ export async function transitionAdminOrderStatus(
         status: d.targetStatus,
         fulfilmentStatus: nextFulfilment,
       };
-    });
+    }, { maxWait: 10_000, timeout: 45_000 });
 
     if (!result.idempotentReplay) {
       await recordAdminAuditLog(
@@ -265,7 +265,7 @@ export async function markOrderPacked(
         status: nextStatus,
         fulfilmentStatus: "PACKED" as FulfilmentStatus,
       };
-    });
+    }, { maxWait: 10_000, timeout: 45_000 });
 
     if (!result.idempotentReplay) {
       await recordAdminAuditLog(
@@ -356,7 +356,7 @@ export async function dispatchAdminOrder(
         status: "SHIPPED" as OrderStatus,
         fulfilmentStatus: "DISPATCHED" as FulfilmentStatus,
       };
-    });
+    }, { maxWait: 10_000, timeout: 45_000 });
 
     if (!result.idempotentReplay) {
       await recordAdminAuditLog(
@@ -438,7 +438,7 @@ export async function confirmCodPaymentCollected(
         status: order.status,
         fulfilmentStatus: order.fulfilmentStatus,
       };
-    });
+    }, { maxWait: 10_000, timeout: 45_000 });
 
     if (!result.idempotentReplay) {
       await recordAdminAuditLog(
@@ -550,7 +550,7 @@ export async function cancelAdminOrder(
         status: "CANCELLED" as OrderStatus,
         fulfilmentStatus: "CANCELLED" as FulfilmentStatus,
       };
-    });
+    }, { maxWait: 10_000, timeout: 45_000 });
 
     if (!result.idempotentReplay) {
       await recordAdminAuditLog(
