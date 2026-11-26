@@ -16,7 +16,8 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
 }
 
 interface PushStatusResponse {
-  configured: boolean;
+  vapidConfigured?: boolean;
+  configured?: boolean;
   activeCount: number;
 }
 
@@ -31,6 +32,8 @@ export function BrowserPushSettings({ enableAdminTest = false }: { enableAdminTe
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const portal = enableAdminTest ? "admin" : "customer";
+
   const refreshStatus = useCallback(async () => {
     try {
       const isSupported =
@@ -39,10 +42,12 @@ export function BrowserPushSettings({ enableAdminTest = false }: { enableAdminTe
         "PushManager" in window &&
         "Notification" in window;
 
-      const res = await fetch("/api/notifications/push/status", { cache: "no-store" });
+      const res = await fetch(`/api/notifications/push/status?portal=${portal}`, {
+        cache: "no-store",
+      });
       if (res.ok) {
         const data = (await res.json()) as PushStatusResponse;
-        setConfigured(Boolean(data.configured));
+        setConfigured(Boolean(data.vapidConfigured ?? data.configured));
         setActiveCount(Number(data.activeCount ?? 0));
       }
 
@@ -58,7 +63,7 @@ export function BrowserPushSettings({ enableAdminTest = false }: { enableAdminTe
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [portal]);
 
   useEffect(() => {
     let active = true;
@@ -70,11 +75,13 @@ export function BrowserPushSettings({ enableAdminTest = false }: { enableAdminTe
           "PushManager" in window &&
           "Notification" in window;
 
-        const res = await fetch("/api/notifications/push/status", { cache: "no-store" });
+        const res = await fetch(`/api/notifications/push/status?portal=${portal}`, {
+          cache: "no-store",
+        });
         if (!active) return;
         if (res.ok) {
           const data = (await res.json()) as PushStatusResponse;
-          setConfigured(Boolean(data.configured));
+          setConfigured(Boolean(data.vapidConfigured ?? data.configured));
           setActiveCount(Number(data.activeCount ?? 0));
         }
 
@@ -95,7 +102,7 @@ export function BrowserPushSettings({ enableAdminTest = false }: { enableAdminTe
     return () => {
       active = false;
     };
-  }, []);
+  }, [portal]);
 
   async function handleEnablePush() {
     setBusy(true);
@@ -141,6 +148,7 @@ export function BrowserPushSettings({ enableAdminTest = false }: { enableAdminTe
             p256dh: json.keys?.p256dh ?? "",
             auth: json.keys?.auth ?? "",
           },
+          portal,
         }),
       });
 
