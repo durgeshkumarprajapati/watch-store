@@ -1,0 +1,13 @@
+import { defineConfig } from "vitest/config";
+import path from "node:path";
+
+export default defineConfig({
+  test: { include: ["tests/**/*.test.ts"], environment: "node" },
+  resolve: {
+    alias: {
+      "@": path.resolve(import.meta.dirname, "src"),
+      // `server-only` throws outside the Next server bundle; stub it for unit tests.
+      "server-only": path.resolve(import.meta.dirname, "tests/stubs/server-only.ts"),
+    },
+  },
+});

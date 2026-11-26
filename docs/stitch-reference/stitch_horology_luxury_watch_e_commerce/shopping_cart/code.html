@@ -1,0 +1,258 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopping Bag — Aurelia Horology</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">/** @type {import('tailwindcss').Config} */
+globalThis.tailwind = globalThis.tailwind || {};
+globalThis.tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        'light-background': '#F5F2EC',
+        'light-on-background': '#171717',
+        'light-surface': '#FFFFFF',
+        'light-on-surface': '#171717',
+        'light-surface-container': '#ECE7DE',
+        'light-surface-container-high': '#FFFFFF',
+        'light-on-surface-variant': '#68645D',
+        'light-primary': '#A87832',
+        'light-on-primary': '#171717',
+        'light-secondary': '#172A3A',
+        'light-on-secondary': '#FFFFFF',
+        'light-outline': '#E5DED3',
+        'light-success': '#18794E',
+        'light-on-success': '#FFFFFF',
+        'light-error': '#C43D3D',
+        'light-on-error': '#FFFFFF',
+        'dark-background': '#111315',
+        'dark-on-background': '#F7F5EF',
+        'dark-surface': '#1B1E21',
+        'dark-on-surface': '#F7F5EF',
+        'dark-surface-container': '#202428',
+        'dark-surface-container-high': '#24282C',
+        'dark-on-surface-variant': '#B6B6B2',
+        'dark-primary': '#D1A65D',
+        'dark-on-primary': '#111315',
+        'dark-secondary': '#344C61',
+        'dark-on-secondary': '#F7F5EF',
+        'dark-outline': '#33383D',
+        'dark-success': '#42B883',
+        'dark-on-success': '#111315',
+        'dark-error': '#F16B6B',
+        'dark-on-error': '#111315',
+      },
+      borderRadius: {
+        'sm': '2px',
+        'DEFAULT': '4px',
+        'md': '8px',
+        'lg': '12px',
+        'full': '9999px',
+      },
+      spacing: {
+        'gutter-xs': '4px',
+        'gutter-sm': '8px',
+        'gutter-md': '16px',
+        'gutter-lg': '24px',
+        'gutter-xl': '32px',
+        'section': '64px',
+        'page-margin': '24px',
+      },
+      fontFamily: {
+        'display': ['"Bodoni Moda"', 'sans-serif'],
+        'headline': ['"Bodoni Moda"', 'sans-serif'],
+        'title': ['"Raleway"', 'sans-serif'],
+        'body': ['"Raleway"', 'sans-serif'],
+        'label': ['"Raleway"', 'sans-serif'],
+        'mono': ['"JetBrains Mono"', 'monospace'],
+      },
+      fontSize: {
+        'display-lg': ['56px', { lineHeight: '62px', letterSpacing: '-1px', fontWeight: '600' }],
+        'display-lg-mobile': ['32px', { lineHeight: '38px', letterSpacing: '-0.5px', fontWeight: '600' }],
+        'display-md': ['40px', { lineHeight: '46px', letterSpacing: '-0.5px', fontWeight: '600' }],
+        'display-md-mobile': ['28px', { lineHeight: '34px', letterSpacing: '-0.25px', fontWeight: '600' }],
+        'headline-lg': ['32px', { lineHeight: '38px', letterSpacing: '-0.25px', fontWeight: '600' }],
+        'headline-md': ['24px', { lineHeight: '30px', letterSpacing: '0px', fontWeight: '500' }],
+        'title-lg': ['20px', { lineHeight: '28px', letterSpacing: '0px', fontWeight: '600' }],
+        'title-md': ['16px', { lineHeight: '24px', letterSpacing: '0.1px', fontWeight: '600' }],
+        'body-lg': ['16px', { lineHeight: '26px', letterSpacing: '0px', fontWeight: '400' }],
+        'body-md': ['14px', { lineHeight: '22px', letterSpacing: '0.1px', fontWeight: '400' }],
+        'label-lg': ['13px', { lineHeight: '18px', letterSpacing: '0.5px', fontWeight: '600' }],
+        'label-sm': ['11px', { lineHeight: '16px', letterSpacing: '0.6px', fontWeight: '600' }],
+        'mono-md': ['14px', { lineHeight: '20px', letterSpacing: '0px', fontWeight: '500' }],
+        'mono-sm': ['12px', { lineHeight: '16px', letterSpacing: '0px', fontWeight: '400' }],
+      },
+      transitionDuration: {
+        'state-change': '180ms',
+        'surface-enter': '280ms',
+        'surface-exit': '180ms',
+      },
+      transitionDelay: {
+        'state-change': '0ms',
+        'surface-enter': '0ms',
+        'surface-exit': '0ms',
+      },
+      transitionTimingFunction: {
+        'state-change': 'cubic-bezier(0.2, 0, 0, 1)',
+        'surface-enter': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        'surface-exit': 'cubic-bezier(0.4, 0, 1, 1)',
+      },
+    },
+  },
+};
+if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
+</script>
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,600;6..96,700&amp;family=Raleway:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet">
+  <style>.material-symbols-outlined, .material-symbols-rounded, .material-symbols-sharp, .material-icons { display: inline-block; width: 1em; height: 1em; line-height: 1 !important; box-sizing: content-box; overflow: hidden; white-space: nowrap; direction: ltr; vertical-align: middle; }</style>
+</head>
+<body class="bg-light-background dark:bg-dark-background text-light-on-background dark:text-dark-on-background font-body antialiased">
+  <div class="min-h-[1024px] flex flex-col" data-stitch-vh="min-h-[1024px]===min-h-screen">
+
+    <!-- Storefront Header -->
+    <header class="sticky top-0 z-40 bg-light-surface dark:bg-dark-surface border-b border-light-outline dark:border-dark-outline">
+      <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-8">
+        <a href="#top" class="flex items-center gap-3 shrink-0">
+          <span class="material-symbols-outlined text-[24px] text-light-primary dark:text-dark-primary">schedule</span>
+          <span class="font-headline text-headline-md tracking-tight text-light-on-surface dark:text-dark-on-surface">AURELIA HOROLOGY</span>
+        </a>
+        <div class="flex items-center gap-3">
+          <button type="button" onclick="toggleEmptyState()" class="px-3.5 py-2 rounded border border-light-outline dark:border-dark-outline font-label text-label-sm uppercase tracking-wider hover:border-light-primary dark:hover:border-dark-primary">Empty View</button>
+          <button type="button" aria-label="Toggle Light/Dark Mode" onclick="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center border border-light-outline dark:border-dark-outline text-light-on-surface dark:text-dark-on-surface hover:border-light-primary dark:hover:border-dark-primary">
+            <span id="theme-icon" class="material-symbols-outlined text-[20px]">dark_mode</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-12">
+      <h1 class="font-headline text-display-md-mobile sm:text-display-md text-light-on-background dark:text-dark-on-background mb-8">Your Shopping Bag (2)</h1>
+
+      <!-- Filled Cart View -->
+      <div id="cart-filled" class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+        <div class="lg:col-span-8 flex flex-col gap-4">
+          <!-- Item 1 -->
+          <div class="bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-6 flex flex-col sm:flex-row gap-6 items-center">
+            <img src="https://lh3.googleusercontent.com/aida/ALJJyrAeryeLin4p_Ox2fnrcbe46IPc0WG1y6s9sy_JJe7YdrjnSG5xaj7B4q0n3lpTWaI5tZpU2osdqHNed-RYeBQtyXC6t7Mlst5dzxBhnfXjnuRz60_p0T8PU8mT0fDXI_EJ8N1orp0_gr5Omm0VTnE6SFSXFRkgqe2Z79fq7b-MLm3hORmniJw64KtNpVLCy5CuHuseEEgTpzVu_GRi13doasFvaMbIst6mlJFN-_KobuHBkZMtwl5dnEj1UR8FCjoEK" alt="Chronomaster Heritage 40mm" class="w-28 h-28 object-cover rounded bg-light-surface-container dark:bg-dark-surface-container shrink-0">
+            <div class="flex-1 flex flex-col gap-1 min-w-0">
+              <span class="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">Aurelia Genève • <span class="font-mono">SKU: AUR-CHR-402</span></span>
+              <h2 class="font-title text-title-lg text-light-on-surface dark:text-dark-on-surface">Chronomaster Heritage</h2>
+              <p class="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant">Maritime Navy Dial • 316L Steel Bracelet</p>
+            </div>
+            <div class="flex items-center gap-6">
+              <div class="inline-flex items-center border border-light-outline dark:border-dark-outline rounded bg-light-background dark:bg-dark-background">
+                <button type="button" class="w-9 h-9 flex items-center justify-center">-</button>
+                <span class="w-8 text-center font-mono text-mono-md tabular-nums">1</span>
+                <button type="button" class="w-9 h-9 flex items-center justify-center">+</button>
+              </div>
+              <div class="text-right min-w-[110px]">
+                <p class="font-title text-title-md tabular-nums">₹1,45,000</p>
+                <button type="button" class="font-label text-label-sm uppercase tracking-wider text-light-error dark:text-dark-error hover:underline mt-1">Remove</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Item 2 -->
+          <div class="bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-6 flex flex-col sm:flex-row gap-6 items-center">
+            <img src="https://lh3.googleusercontent.com/aida/ALJJyrAsubGYqj9QJxuODb9jH9OT1GVYdQwxGqW2RSvj2AiqNzrpIbf2eCKvWcpghu7K9GwuABX2qVzwOB23yc9Sb_OO-r-9tzbtt6nfb0KBEfkqZ5mMhD-N8OqpqncpHXtXONbvduDTQ6gP7Nzj6iWLKAdUVeUz0EGy2xmRWqenDF8pqJ4slgkEIFyMojNZzc_tKBtQM8eoTwZytZUPZeRaxJb2NJO7aiCMF11a2WpSrxJs6-SQWDSK_sTSr1m5GimB" alt="Atelier Classique Bronze" class="w-28 h-28 object-cover rounded bg-light-surface-container dark:bg-dark-surface-container shrink-0">
+            <div class="flex-1 flex flex-col gap-1 min-w-0">
+              <span class="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">Vespera Studio • <span class="font-mono">SKU: VES-DRS-118</span></span>
+              <h2 class="font-title text-title-lg text-light-on-surface dark:text-dark-on-surface">Atelier Classique Bronze</h2>
+              <p class="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant">Ivory Dial • Espresso Leather Strap</p>
+            </div>
+            <div class="flex items-center gap-6">
+              <div class="inline-flex items-center border border-light-outline dark:border-dark-outline rounded bg-light-background dark:bg-dark-background">
+                <button type="button" class="w-9 h-9 flex items-center justify-center">-</button>
+                <span class="w-8 text-center font-mono text-mono-md tabular-nums">1</span>
+                <button type="button" class="w-9 h-9 flex items-center justify-center">+</button>
+              </div>
+              <div class="text-right min-w-[110px]">
+                <p class="font-title text-title-md tabular-nums">₹88,500</p>
+                <button type="button" class="font-label text-label-sm uppercase tracking-wider text-light-error dark:text-dark-error hover:underline mt-1">Remove</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-2">
+            <a href="#catalogue" class="inline-flex items-center gap-2 font-label text-label-lg uppercase tracking-wider text-light-on-surface dark:text-dark-on-surface hover:text-light-secondary dark:hover:text-dark-primary">
+              <span class="material-symbols-outlined text-[18px]">arrow_back</span> Continue Shopping
+            </a>
+          </div>
+        </div>
+
+        <!-- Order Summary -->
+        <aside class="lg:col-span-4 bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-6 flex flex-col gap-5">
+          <h2 class="font-headline text-headline-md text-light-on-surface dark:text-dark-on-surface border-b border-light-outline dark:border-dark-outline pb-4">Order Summary</h2>
+
+          <!-- Coupon -->
+          <div class="flex gap-2">
+            <input type="text" placeholder="Promo code (e.g. AURELIA10)" class="flex-1 min-w-0 px-3.5 py-2.5 rounded bg-light-background dark:bg-dark-background border border-light-outline dark:border-dark-outline font-mono text-mono-sm outline-none focus:border-light-primary dark:focus:border-dark-primary focus-visible:ring-2 focus-visible:ring-light-primary dark:focus-visible:ring-dark-primary">
+            <button type="button" class="px-4 py-2.5 rounded border border-light-outline dark:border-dark-outline font-label text-label-sm uppercase tracking-wider hover:border-light-primary dark:hover:border-dark-primary shrink-0">Apply</button>
+          </div>
+
+          <div class="flex flex-col gap-3 border-t border-light-outline dark:border-dark-outline pt-4 font-body text-body-md">
+            <div class="flex justify-between">
+              <span class="text-light-on-surface-variant dark:text-dark-on-surface-variant">Subtotal (2 items)</span>
+              <span class="font-mono tabular-nums">₹2,33,500</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-light-on-surface-variant dark:text-dark-on-surface-variant">Collector Discount</span>
+              <span class="font-mono tabular-nums text-light-success dark:text-dark-success">-₹10,000</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-light-on-surface-variant dark:text-dark-on-surface-variant">Insured Air Shipping</span>
+              <span class="font-label text-label-sm uppercase text-light-success dark:text-dark-success">Complimentary</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-light-on-surface-variant dark:text-dark-on-surface-variant">Included GST (18%)</span>
+              <span class="font-mono tabular-nums">₹34,093</span>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-baseline border-t border-light-outline dark:border-dark-outline pt-4">
+            <span class="font-title text-title-lg">Grand Total</span>
+            <span class="font-headline text-headline-lg tabular-nums">₹2,23,500</span>
+          </div>
+
+          <button data-component-id="button-primary" data-component-type="button" data-component-variant="primary" type="button" class="w-full py-3.5 px-6 rounded-sm bg-light-primary dark:bg-dark-primary text-light-on-primary dark:text-dark-on-primary font-label text-label-lg uppercase tracking-wider hover:opacity-90">
+            <span data-design-text-token="label-lg">Proceed to Checkout</span>
+          </button>
+        </aside>
+      </div>
+
+      <!-- Empty Cart State (Hidden by default) -->
+      <div id="cart-empty" class="hidden bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-16 text-center max-w-2xl mx-auto">
+        <span class="material-symbols-outlined text-[48px] text-light-primary dark:text-dark-primary mb-4">shopping_bag</span>
+        <h2 class="font-headline text-headline-lg text-light-on-surface dark:text-dark-on-surface mb-2">Your Shopping Bag is Empty</h2>
+        <p class="font-body text-body-lg text-light-on-surface-variant dark:text-dark-on-surface-variant mb-6">
+          Explore our Geneva-regulated chronographs and minimal dress watches to begin your collection.
+        </p>
+        <button type="button" onclick="toggleEmptyState()" class="px-7 py-3.5 rounded-sm bg-light-primary dark:bg-dark-primary text-light-on-primary dark:text-dark-on-primary font-label text-label-lg uppercase tracking-wider">Explore Collection</button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    function toggleEmptyState() {
+      document.getElementById('cart-filled').classList.toggle('hidden');
+      document.getElementById('cart-empty').classList.toggle('hidden');
+    }
+    function toggleTheme() {
+      const root = document.documentElement;
+      const isDark = root.classList.toggle('dark');
+      const icon = document.getElementById('theme-icon');
+      if (icon) icon.textContent = isDark ? 'light_mode' : 'dark_mode';
+      try { localStorage.setItem('aurelia-theme', isDark ? 'dark' : 'light'); } catch (e) {}
+    }
+    try {
+      if (localStorage.getItem('aurelia-theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+        const icon = document.getElementById('theme-icon');
+        if (icon) icon.textContent = 'light_mode';
+      }
+    } catch (e) {}
+  </script>
+
+
+</body></html>

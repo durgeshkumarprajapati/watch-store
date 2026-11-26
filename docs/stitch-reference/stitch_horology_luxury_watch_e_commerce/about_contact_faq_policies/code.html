@@ -1,0 +1,243 @@
+<!DOCTYPE html><html lang="en"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Care, About &amp; Policies — Aurelia Horology</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">/** @type {import('tailwindcss').Config} */
+globalThis.tailwind = globalThis.tailwind || {};
+globalThis.tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        'light-background': '#F5F2EC',
+        'light-on-background': '#171717',
+        'light-surface': '#FFFFFF',
+        'light-on-surface': '#171717',
+        'light-surface-container': '#ECE7DE',
+        'light-surface-container-high': '#FFFFFF',
+        'light-on-surface-variant': '#68645D',
+        'light-primary': '#A87832',
+        'light-on-primary': '#171717',
+        'light-secondary': '#172A3A',
+        'light-on-secondary': '#FFFFFF',
+        'light-outline': '#E5DED3',
+        'light-success': '#18794E',
+        'light-on-success': '#FFFFFF',
+        'light-error': '#C43D3D',
+        'light-on-error': '#FFFFFF',
+        'dark-background': '#111315',
+        'dark-on-background': '#F7F5EF',
+        'dark-surface': '#1B1E21',
+        'dark-on-surface': '#F7F5EF',
+        'dark-surface-container': '#202428',
+        'dark-surface-container-high': '#24282C',
+        'dark-on-surface-variant': '#B6B6B2',
+        'dark-primary': '#D1A65D',
+        'dark-on-primary': '#111315',
+        'dark-secondary': '#344C61',
+        'dark-on-secondary': '#F7F5EF',
+        'dark-outline': '#33383D',
+        'dark-success': '#42B883',
+        'dark-on-success': '#111315',
+        'dark-error': '#F16B6B',
+        'dark-on-error': '#111315',
+      },
+      borderRadius: {
+        'sm': '2px',
+        'DEFAULT': '4px',
+        'md': '8px',
+        'lg': '12px',
+        'full': '9999px',
+      },
+      spacing: {
+        'gutter-xs': '4px',
+        'gutter-sm': '8px',
+        'gutter-md': '16px',
+        'gutter-lg': '24px',
+        'gutter-xl': '32px',
+        'section': '64px',
+        'page-margin': '24px',
+      },
+      fontFamily: {
+        'display': ['"Bodoni Moda"', 'sans-serif'],
+        'headline': ['"Bodoni Moda"', 'sans-serif'],
+        'title': ['"Raleway"', 'sans-serif'],
+        'body': ['"Raleway"', 'sans-serif'],
+        'label': ['"Raleway"', 'sans-serif'],
+        'mono': ['"JetBrains Mono"', 'monospace'],
+      },
+      fontSize: {
+        'display-lg': ['56px', { lineHeight: '62px', letterSpacing: '-1px', fontWeight: '600' }],
+        'display-lg-mobile': ['32px', { lineHeight: '38px', letterSpacing: '-0.5px', fontWeight: '600' }],
+        'display-md': ['40px', { lineHeight: '46px', letterSpacing: '-0.5px', fontWeight: '600' }],
+        'display-md-mobile': ['28px', { lineHeight: '34px', letterSpacing: '-0.25px', fontWeight: '600' }],
+        'headline-lg': ['32px', { lineHeight: '38px', letterSpacing: '-0.25px', fontWeight: '600' }],
+        'headline-md': ['24px', { lineHeight: '30px', letterSpacing: '0px', fontWeight: '500' }],
+        'title-lg': ['20px', { lineHeight: '28px', letterSpacing: '0px', fontWeight: '600' }],
+        'title-md': ['16px', { lineHeight: '24px', letterSpacing: '0.1px', fontWeight: '600' }],
+        'body-lg': ['16px', { lineHeight: '26px', letterSpacing: '0px', fontWeight: '400' }],
+        'body-md': ['14px', { lineHeight: '22px', letterSpacing: '0.1px', fontWeight: '400' }],
+        'label-lg': ['13px', { lineHeight: '18px', letterSpacing: '0.5px', fontWeight: '600' }],
+        'label-sm': ['11px', { lineHeight: '16px', letterSpacing: '0.6px', fontWeight: '600' }],
+        'mono-md': ['14px', { lineHeight: '20px', letterSpacing: '0px', fontWeight: '500' }],
+        'mono-sm': ['12px', { lineHeight: '16px', letterSpacing: '0px', fontWeight: '400' }],
+      },
+      transitionDuration: {
+        'state-change': '180ms',
+        'surface-enter': '280ms',
+        'surface-exit': '180ms',
+      },
+      transitionDelay: {
+        'state-change': '0ms',
+        'surface-enter': '0ms',
+        'surface-exit': '0ms',
+      },
+      transitionTimingFunction: {
+        'state-change': 'cubic-bezier(0.2, 0, 0, 1)',
+        'surface-enter': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        'surface-exit': 'cubic-bezier(0.4, 0, 1, 1)',
+      },
+    },
+  },
+};
+if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
+</script>
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,600;6..96,700&amp;family=Raleway:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet">
+  <style>.material-symbols-outlined, .material-symbols-rounded, .material-symbols-sharp, .material-icons { display: inline-block; width: 1em; height: 1em; line-height: 1 !important; box-sizing: content-box; overflow: hidden; white-space: nowrap; direction: ltr; vertical-align: middle; }</style>
+</head>
+<body class="bg-light-background dark:bg-dark-background text-light-on-background dark:text-dark-on-background font-body antialiased">
+  <div class="min-h-[1024px] flex flex-col" data-stitch-vh="min-h-[1024px]===min-h-screen">
+
+    <!-- Storefront Header -->
+    <header class="sticky top-0 z-40 bg-light-surface dark:bg-dark-surface border-b border-light-outline dark:border-dark-outline">
+      <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-8">
+        <a href="#top" class="flex items-center gap-3 shrink-0">
+          <span class="material-symbols-outlined text-[24px] text-light-primary dark:text-dark-primary">schedule</span>
+          <span class="font-headline text-headline-md tracking-tight text-light-on-surface dark:text-dark-on-surface">AURELIA HOROLOGY</span>
+        </a>
+        <div class="flex items-center gap-3">
+          <button type="button" aria-label="Toggle Light/Dark Mode" onclick="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center border border-light-outline dark:border-dark-outline text-light-on-surface dark:text-dark-on-surface hover:border-light-primary dark:hover:border-dark-primary">
+            <span id="theme-icon" class="material-symbols-outlined text-[20px]">dark_mode</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-6 py-12 flex flex-col gap-12">
+      <!-- Page Header & Section Switcher -->
+      <div class="border-b border-light-outline dark:border-dark-outline pb-8 flex flex-col gap-6">
+        <div>
+          <span class="font-label text-label-sm uppercase tracking-widest text-light-secondary dark:text-dark-primary">Client Concierge &amp; Legal</span>
+          <h1 class="font-headline text-display-md-mobile sm:text-display-md mt-1">About Us, FAQ &amp; Store Policies</h1>
+        </div>
+        <div class="flex flex-wrap gap-2" role="tablist">
+          <button type="button" onclick="selectPolicy(&#39;about&#39;, this)" class="policy-tab px-4 py-2 rounded-sm bg-light-primary dark:bg-dark-primary text-light-on-primary dark:text-dark-on-primary font-label text-label-sm uppercase tracking-wider">About Us</button>
+          <button type="button" onclick="selectPolicy(&#39;contact&#39;, this)" class="policy-tab px-4 py-2 rounded-sm bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline font-label text-label-sm uppercase tracking-wider">Contact Us</button>
+          <button type="button" onclick="selectPolicy(&#39;faq&#39;, this)" class="policy-tab px-4 py-2 rounded-sm bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline font-label text-label-sm uppercase tracking-wider">FAQ</button>
+          <button type="button" onclick="selectPolicy(&#39;shipping&#39;, this)" class="policy-tab px-4 py-2 rounded-sm bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline font-label text-label-sm uppercase tracking-wider">Shipping Policy</button>
+          <button type="button" onclick="selectPolicy(&#39;returns&#39;, this)" class="policy-tab px-4 py-2 rounded-sm bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline font-label text-label-sm uppercase tracking-wider">Returns &amp; Refunds</button>
+          <button type="button" onclick="selectPolicy(&#39;warranty&#39;, this)" class="policy-tab px-4 py-2 rounded-sm bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline font-label text-label-sm uppercase tracking-wider">Warranty</button>
+          <button type="button" onclick="selectPolicy(&#39;privacy&#39;, this)" class="policy-tab px-4 py-2 rounded-sm bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline font-label text-label-sm uppercase tracking-wider">Privacy &amp; Terms</button>
+        </div>
+      </div>
+
+      <!-- About Us Panel -->
+      <section id="panel-about" class="policy-panel grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+        <div class="lg:col-span-6 flex flex-col gap-4">
+          <h2 class="font-headline text-headline-lg">Horological Craftsmanship for the Modern Collector</h2>
+          <p class="font-body text-body-lg text-light-on-surface-variant dark:text-dark-on-surface-variant">
+            Founded in Mumbai&#39;s Kala Ghoda heritage district, Aurelia Horology partners with independent Swiss and Japanese movement ateliers to bring regulated mechanical and quartz timepieces directly to collectors across India.
+          </p>
+          <p class="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant">
+            Every timepiece is inspected in our climate-controlled watchmaking studio, issued a serialized warranty card, and dispatched with 100% transit insurance.
+          </p>
+        </div>
+        <div class="lg:col-span-6">
+          <img src="https://lh3.googleusercontent.com/aida/ALJJyrBcjHe8QGSy_RZDQ1B3kfPEi7ekD2t_w088aWPvtMvU1vGgdw9X2qTA2Xr9O1Vm4hyF_M-fMKJgnNcHsw8xRVHb-DYQCanUqFlvfbRsPrmnR7UhE1OrXnSqpfV3GxnGr_mVx3CtrwkWClN1a0XwzyYTG23DgueKzA77cqUt5kjae9Lg7JJ82oV28KKkNqtRq_KZKxLsQTXa0qhjSdM1e-aDVuGtU8YTGKc87A-9_3vjciW0IsnpnDt7C3wMFDC4uQ" alt="Aurelia Horology Craftsmanship" class="w-full aspect-[4/3] object-cover rounded border border-light-outline dark:border-dark-outline">
+        </div>
+      </section>
+
+      <!-- Contact Us Panel -->
+      <section id="panel-contact" class="policy-panel hidden grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div class="lg:col-span-5 bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-6 flex flex-col gap-4">
+          <h2 class="font-headline text-headline-md">Boutique &amp; Service Desk</h2>
+          <p class="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant">14 Rampart Row, Kala Ghoda, Fort, Mumbai 400001</p>
+          <p class="font-mono text-mono-sm">concierge@aureliahorology.in • +91 22 4982 1100</p>
+          <p class="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant">Mon–Sat, 10:30 AM to 7:30 PM IST</p>
+        </div>
+        <form class="lg:col-span-7 bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-6 flex flex-col gap-4" onsubmit="return false;">
+          <h2 class="font-headline text-headline-md">Send a Concierge Inquiry</h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <input type="text" placeholder="Your Name" class="px-3.5 py-2.5 rounded bg-light-background dark:bg-dark-background border border-light-outline dark:border-dark-outline outline-none focus-visible:ring-2 focus-visible:ring-light-primary dark:focus-visible:ring-dark-primary">
+            <input type="email" placeholder="Email Address" class="px-3.5 py-2.5 rounded bg-light-background dark:bg-dark-background border border-light-outline dark:border-dark-outline outline-none focus-visible:ring-2 focus-visible:ring-light-primary dark:focus-visible:ring-dark-primary">
+          </div>
+          <textarea rows="4" placeholder="How can our horologists assist you?" class="px-3.5 py-2.5 rounded bg-light-background dark:bg-dark-background border border-light-outline dark:border-dark-outline outline-none focus-visible:ring-2 focus-visible:ring-light-primary dark:focus-visible:ring-dark-primary"></textarea>
+          <button type="submit" class="self-start px-6 py-3 rounded-sm bg-light-primary dark:bg-dark-primary text-light-on-primary dark:text-dark-on-primary font-label text-label-lg uppercase tracking-wider">Send Inquiry</button>
+        </form>
+      </section>
+
+      <!-- FAQ Panel -->
+      <section id="panel-faq" class="policy-panel hidden flex flex-col gap-4 max-w-3xl">
+        <h2 class="font-headline text-headline-lg mb-2">Frequently Asked Questions</h2>
+        <div class="bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-5">
+          <h3 class="font-title text-title-md">Are all watches covered by an official warranty in India?</h3>
+          <p class="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant mt-1">Yes. Every mechanical and quartz timepiece includes a 5-year movement warranty serviced at our Mumbai and Bengaluru ateliers.</p>
+        </div>
+        <div class="bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-5">
+          <h3 class="font-title text-title-md">How is high-value shipping insured?</h3>
+          <p class="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant mt-1">All orders ship via BlueDart Air Vault in tamper-evident packaging with 100% transit insurance and OTP-verified handover.</p>
+        </div>
+      </section>
+
+      <!-- Shipping / Returns / Warranty / Privacy Panels -->
+      <section id="panel-shipping" class="policy-panel hidden bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-8 max-w-3xl flex flex-col gap-3">
+        <h2 class="font-headline text-headline-lg">Shipping &amp; Insured Delivery Policy</h2>
+        <p class="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant">Complimentary insured express air shipping across 19,000+ Indian PIN codes. Metro orders arrive within 24–48 hours; rest of India within 3–5 business days.</p>
+      </section>
+
+      <section id="panel-returns" class="policy-panel hidden bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-8 max-w-3xl flex flex-col gap-3">
+        <h2 class="font-headline text-headline-lg">14-Day Return &amp; Refund Policy</h2>
+        <p class="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant">Unworn watches with intact protective seals, tags, and presentation box may be returned within 14 days for a full refund to your original Razorpay payment method within 5–7 business days.</p>
+      </section>
+
+      <section id="panel-warranty" class="policy-panel hidden bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-8 max-w-3xl flex flex-col gap-3">
+        <h2 class="font-headline text-headline-lg">5-Year International Movement Warranty</h2>
+        <p class="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant">Covers manufacturing defects in the movement, hands, and dial for 60 months from the invoice date. Normal strap wear and accidental crystal impact are excluded.</p>
+      </section>
+
+      <section id="panel-privacy" class="policy-panel hidden bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-8 max-w-3xl flex flex-col gap-3">
+        <h2 class="font-headline text-headline-lg">Privacy Policy &amp; Terms of Service</h2>
+        <p class="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant">We process customer data strictly for order fulfilment, GST invoicing, and warranty registration in compliance with Indian IT Act &amp; DPDP guidelines.</p>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    function selectPolicy(id, btn) {
+      document.querySelectorAll('.policy-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById('panel-' + id).classList.remove('hidden');
+      document.querySelectorAll('.policy-tab').forEach(t => {
+        t.className = 'policy-tab px-4 py-2 rounded-sm bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline font-label text-label-sm uppercase tracking-wider';
+      });
+      btn.className = 'policy-tab px-4 py-2 rounded-sm bg-light-primary dark:bg-dark-primary text-light-on-primary dark:text-dark-on-primary font-label text-label-sm uppercase tracking-wider';
+    }
+    function toggleTheme() {
+      const root = document.documentElement;
+      const isDark = root.classList.toggle('dark');
+      const icon = document.getElementById('theme-icon');
+      if (icon) icon.textContent = isDark ? 'light_mode' : 'dark_mode';
+      try { localStorage.setItem('aurelia-theme', isDark ? 'dark' : 'light'); } catch (e) {}
+    }
+    try {
+      if (localStorage.getItem('aurelia-theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+        const icon = document.getElementById('theme-icon');
+        if (icon) icon.textContent = 'light_mode';
+      }
+    } catch (e) {}
+  </script>
+
+
+</body></html>

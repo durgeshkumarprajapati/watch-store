@@ -1,0 +1,229 @@
+<!DOCTYPE html><html lang="en" class="dark"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Sheets Sync — Aurelia Admin</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script id="tailwind-config">/** @type {import('tailwindcss').Config} */
+globalThis.tailwind = globalThis.tailwind || {};
+globalThis.tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        'light-background': '#F5F2EC',
+        'light-on-background': '#171717',
+        'light-surface': '#FFFFFF',
+        'light-on-surface': '#171717',
+        'light-surface-container': '#ECE7DE',
+        'light-surface-container-high': '#FFFFFF',
+        'light-on-surface-variant': '#68645D',
+        'light-primary': '#A87832',
+        'light-on-primary': '#171717',
+        'light-secondary': '#172A3A',
+        'light-on-secondary': '#FFFFFF',
+        'light-outline': '#E5DED3',
+        'light-success': '#18794E',
+        'light-on-success': '#FFFFFF',
+        'light-error': '#C43D3D',
+        'light-on-error': '#FFFFFF',
+        'dark-background': '#111315',
+        'dark-on-background': '#F7F5EF',
+        'dark-surface': '#1B1E21',
+        'dark-on-surface': '#F7F5EF',
+        'dark-surface-container': '#202428',
+        'dark-surface-container-high': '#24282C',
+        'dark-on-surface-variant': '#B6B6B2',
+        'dark-primary': '#D1A65D',
+        'dark-on-primary': '#111315',
+        'dark-secondary': '#344C61',
+        'dark-on-secondary': '#F7F5EF',
+        'dark-outline': '#33383D',
+        'dark-success': '#42B883',
+        'dark-on-success': '#111315',
+        'dark-error': '#F16B6B',
+        'dark-on-error': '#111315',
+      },
+      borderRadius: {
+        'sm': '2px',
+        'DEFAULT': '4px',
+        'md': '8px',
+        'lg': '12px',
+        'full': '9999px',
+      },
+      spacing: {
+        'gutter-xs': '4px',
+        'gutter-sm': '8px',
+        'gutter-md': '16px',
+        'gutter-lg': '24px',
+        'gutter-xl': '32px',
+        'section': '64px',
+        'page-margin': '24px',
+      },
+      fontFamily: {
+        'display': ['"Bodoni Moda"', 'sans-serif'],
+        'headline': ['"Bodoni Moda"', 'sans-serif'],
+        'title': ['"Raleway"', 'sans-serif'],
+        'body': ['"Raleway"', 'sans-serif'],
+        'label': ['"Raleway"', 'sans-serif'],
+        'mono': ['"JetBrains Mono"', 'monospace'],
+      },
+      fontSize: {
+        'display-lg': ['56px', { lineHeight: '62px', letterSpacing: '-1px', fontWeight: '600' }],
+        'display-lg-mobile': ['32px', { lineHeight: '38px', letterSpacing: '-0.5px', fontWeight: '600' }],
+        'display-md': ['40px', { lineHeight: '46px', letterSpacing: '-0.5px', fontWeight: '600' }],
+        'display-md-mobile': ['28px', { lineHeight: '34px', letterSpacing: '-0.25px', fontWeight: '600' }],
+        'headline-lg': ['32px', { lineHeight: '38px', letterSpacing: '-0.25px', fontWeight: '600' }],
+        'headline-md': ['24px', { lineHeight: '30px', letterSpacing: '0px', fontWeight: '500' }],
+        'title-lg': ['20px', { lineHeight: '28px', letterSpacing: '0px', fontWeight: '600' }],
+        'title-md': ['16px', { lineHeight: '24px', letterSpacing: '0.1px', fontWeight: '600' }],
+        'body-lg': ['16px', { lineHeight: '26px', letterSpacing: '0px', fontWeight: '400' }],
+        'body-md': ['14px', { lineHeight: '22px', letterSpacing: '0.1px', fontWeight: '400' }],
+        'label-lg': ['13px', { lineHeight: '18px', letterSpacing: '0.5px', fontWeight: '600' }],
+        'label-sm': ['11px', { lineHeight: '16px', letterSpacing: '0.6px', fontWeight: '600' }],
+        'mono-md': ['14px', { lineHeight: '20px', letterSpacing: '0px', fontWeight: '500' }],
+        'mono-sm': ['12px', { lineHeight: '16px', letterSpacing: '0px', fontWeight: '400' }],
+      },
+      transitionDuration: {
+        'state-change': '180ms',
+        'surface-enter': '280ms',
+        'surface-exit': '180ms',
+      },
+      transitionDelay: {
+        'state-change': '0ms',
+        'surface-enter': '0ms',
+        'surface-exit': '0ms',
+      },
+      transitionTimingFunction: {
+        'state-change': 'cubic-bezier(0.2, 0, 0, 1)',
+        'surface-enter': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        'surface-exit': 'cubic-bezier(0.4, 0, 1, 1)',
+      },
+    },
+  },
+};
+if (typeof module !== 'undefined') module.exports = globalThis.tailwind.config;
+</script>
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,600;6..96,700&amp;family=Raleway:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=block" rel="stylesheet">
+  <style>.material-symbols-outlined, .material-symbols-rounded, .material-symbols-sharp, .material-icons { display: inline-block; width: 1em; height: 1em; line-height: 1 !important; box-sizing: content-box; overflow: hidden; white-space: nowrap; direction: ltr; vertical-align: middle; }</style>
+</head>
+<body class="bg-light-background dark:bg-dark-background text-light-on-background dark:text-dark-on-background font-body antialiased">
+  <div class="min-h-[1024px] flex" data-stitch-vh="min-h-[1024px]===min-h-screen">
+
+    <!-- Persistent Left Sidebar -->
+    <aside class="w-64 shrink-0 bg-light-surface dark:bg-dark-surface border-r border-light-outline dark:border-dark-outline hidden lg:flex flex-col min-h-[1024px]" data-stitch-vh="min-h-[1024px]===min-h-screen">
+      <div class="h-20 px-6 flex items-center gap-3 border-b border-light-outline dark:border-dark-outline">
+        <span class="material-symbols-outlined text-[24px] text-light-primary dark:text-dark-primary">schedule</span>
+        <div>
+          <span class="font-headline text-title-lg block leading-none">AURELIA</span>
+          <span class="font-label text-label-sm uppercase tracking-widest text-light-on-surface-variant dark:text-dark-on-surface-variant">Admin Console</span>
+        </div>
+      </div>
+      <nav aria-label="Admin Navigation" class="flex-1 p-4 flex flex-col gap-1">
+        <a href="#dashboard" class="flex items-center gap-3 px-3.5 py-2.5 rounded text-light-on-surface dark:text-dark-on-surface hover:bg-light-surface-container dark:hover:bg-dark-surface-container font-body text-body-md"><span class="material-symbols-outlined text-[20px]">dashboard</span> Dashboard</a>
+        <a href="#products" class="flex items-center gap-3 px-3.5 py-2.5 rounded text-light-on-surface dark:text-dark-on-surface hover:bg-light-surface-container dark:hover:bg-dark-surface-container font-body text-body-md"><span class="material-symbols-outlined text-[20px]">watch</span> Products &amp; Inventory</a>
+        <a href="#sheets" class="flex items-center gap-3 px-3.5 py-2.5 rounded bg-light-primary dark:bg-dark-primary text-light-on-primary dark:text-dark-on-primary font-label text-label-lg"><span class="material-symbols-outlined text-[20px]">table_view</span> Google Sheets Sync</a>
+        <a href="#orders" class="flex items-center gap-3 px-3.5 py-2.5 rounded text-light-on-surface dark:text-dark-on-surface hover:bg-light-surface-container dark:hover:bg-dark-surface-container font-body text-body-md"><span class="material-symbols-outlined text-[20px]">receipt_long</span> Orders &amp; GST</a>
+        <a href="#customers" class="flex items-center gap-3 px-3.5 py-2.5 rounded text-light-on-surface dark:text-dark-on-surface hover:bg-light-surface-container dark:hover:bg-dark-surface-container font-body text-body-md"><span class="material-symbols-outlined text-[20px]">group</span> Customers &amp; Reports</a>
+      </nav>
+    </aside>
+
+    <div class="flex-1 flex flex-col min-w-0">
+      <header class="h-20 bg-light-surface dark:bg-dark-surface border-b border-light-outline dark:border-dark-outline px-6 flex items-center justify-between gap-4">
+        <span class="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant">Admin / <strong class="text-light-on-surface dark:text-dark-on-surface">Google Sheets Synchronization</strong></span>
+        <button type="button" aria-label="Toggle Light/Dark Mode" onclick="toggleTheme()" class="w-10 h-10 rounded-full flex items-center justify-center border border-light-outline dark:border-dark-outline hover:border-light-primary dark:hover:border-dark-primary">
+          <span id="theme-icon" class="material-symbols-outlined text-[20px]">light_mode</span>
+        </button>
+      </header>
+
+      <main class="flex-1 p-6 lg:p-8 flex flex-col gap-8">
+        <!-- Connection Status & Actions -->
+        <section class="bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div class="flex flex-col gap-1.5">
+            <div class="flex items-center gap-3">
+              <span class="px-2.5 py-1 rounded-sm bg-light-success dark:bg-dark-success text-light-on-success dark:text-dark-on-success font-label text-label-sm uppercase">Connected</span>
+              <span class="font-mono text-mono-sm text-light-on-surface-variant dark:text-dark-on-surface-variant">Last Sync: 24 Nov 2026, 22:24 IST</span>
+            </div>
+            <h1 class="font-headline text-headline-lg mt-1">Aurelia_Master_Catalogue_FY26.xlsx</h1>
+            <p class="font-body text-body-md text-light-on-surface-variant dark:text-dark-on-surface-variant">Two-way catalogue, MRP, GST rate, and Mumbai/Bengaluru warehouse stock sync.</p>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <button type="button" class="px-4 py-2.5 rounded-sm border border-light-outline dark:border-dark-outline font-label text-label-lg uppercase tracking-wider inline-flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">download</span> Export Sheet
+            </button>
+            <button type="button" class="px-4 py-2.5 rounded-sm border border-light-outline dark:border-dark-outline font-label text-label-lg uppercase tracking-wider inline-flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">visibility</span> Preview Diff
+            </button>
+            <button type="button" class="px-5 py-2.5 rounded-sm bg-light-primary dark:bg-dark-primary text-light-on-primary dark:text-dark-on-primary font-label text-label-lg uppercase tracking-wider inline-flex items-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">sync</span> Import &amp; Sync Now
+            </button>
+          </div>
+        </section>
+
+        <!-- Sync Metrics -->
+        <section class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div class="bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-6">
+            <p class="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">Total Rows Scanned</p>
+            <p class="font-headline text-headline-lg tabular-nums mt-2">75</p>
+          </div>
+          <div class="bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-6">
+            <p class="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">Successful Records</p>
+            <p class="font-headline text-headline-lg tabular-nums text-light-success dark:text-dark-success mt-2">72</p>
+          </div>
+          <div class="bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md p-6 flex items-end justify-between">
+            <div>
+              <p class="font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">Failed Rows</p>
+              <p class="font-headline text-headline-lg tabular-nums text-light-error dark:text-dark-error mt-2">3</p>
+            </div>
+            <button type="button" class="px-3.5 py-2 rounded-sm bg-light-error dark:bg-dark-error text-light-on-error dark:text-dark-on-error font-label text-label-sm uppercase tracking-wider">Retry Failed</button>
+          </div>
+        </section>
+
+        <!-- Row-wise Validation Errors -->
+        <section class="bg-light-surface dark:bg-dark-surface border border-light-outline dark:border-dark-outline rounded-md overflow-hidden">
+          <div class="px-6 py-4 border-b border-light-outline dark:border-dark-outline flex items-center justify-between">
+            <h2 class="font-title text-title-lg">Row-wise Validation Errors (3)</h2>
+            <span class="font-mono text-mono-sm text-light-on-surface-variant dark:text-dark-on-surface-variant">Batch #SYNC-884</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-light-outline dark:border-dark-outline bg-light-surface-container dark:bg-dark-surface-container">
+                  <th class="px-6 py-3.5 font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">Sheet Row</th>
+                  <th class="px-6 py-3.5 font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">SKU</th>
+                  <th class="px-6 py-3.5 font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">Validation Error</th>
+                  <th class="px-6 py-3.5 font-label text-label-sm uppercase tracking-wider text-light-on-surface-variant dark:text-dark-on-surface-variant">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-light-outline dark:divide-dark-outline">
+                <tr>
+                  <td class="px-6 py-4 font-mono text-mono-sm">Row 41</td>
+                  <td class="px-6 py-4 font-mono text-mono-sm">AUR-DIV-311</td>
+                  <td class="px-6 py-4 font-body text-body-md text-light-error dark:text-dark-error">Selling price (₹1,95,000) exceeds MRP (₹1,90,000).</td>
+                  <td class="px-6 py-4"><button type="button" class="font-label text-label-sm uppercase text-light-secondary dark:text-dark-primary hover:underline">Fix in Sheet</button></td>
+                </tr>
+                <tr>
+                  <td class="px-6 py-4 font-mono text-mono-sm">Row 58</td>
+                  <td class="px-6 py-4 font-mono text-mono-sm">VES-MIN-094</td>
+                  <td class="px-6 py-4 font-body text-body-md text-light-error dark:text-dark-error">Missing 4-digit HSN code for GST calculation.</td>
+                  <td class="px-6 py-4"><button type="button" class="font-label text-label-sm uppercase text-light-secondary dark:text-dark-primary hover:underline">Fix in Sheet</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const root = document.documentElement;
+      const isDark = root.classList.toggle('dark');
+      const icon = document.getElementById('theme-icon');
+      if (icon) icon.textContent = isDark ? 'light_mode' : 'dark_mode';
+    }
+  </script>
+
+
+</body></html>
