@@ -2,6 +2,7 @@ import "server-only";
 import type { OrderStatus, PaymentStatus, Prisma, PrismaClient } from "@prisma/client";
 import { requireRazorpayConfig } from "@/config/env";
 import { getPrisma } from "@/lib/prisma";
+import { scheduleImmediatePushDispatch } from "@/modules/notifications/notification-worker-service";
 import { createRazorpayClient, type RazorpayClient } from "../infrastructure/razorpay-client";
 import {
   verifyOrderAccessToken,
@@ -131,6 +132,7 @@ export async function verifyRazorpayCheckoutPayment(params: {
       return { ok: false, code: "MISMATCH", error: settled.error };
     }
 
+    scheduleImmediatePushDispatch();
     return {
       ok: true,
       orderNumber: settled.orderNumber,
@@ -168,6 +170,7 @@ export async function verifyRazorpayCheckoutPayment(params: {
     }),
   );
 
+  scheduleImmediatePushDispatch();
   return {
     ok: false,
     code: "NOT_CAPTURED",

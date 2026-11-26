@@ -12,6 +12,7 @@ import {
   enqueueAdminBroadcastInTx,
   enqueueCustomerInAppAndPushInTx,
 } from "@/modules/notifications/notification-outbox-service";
+import { scheduleImmediatePushDispatch } from "@/modules/notifications/notification-worker-service";
 import { linkVerifiedUserToCustomerInTx } from "./customer-link-service";
 import { hashPassword } from "./password-service";
 import { consumeAuthActionTokenInTx, createAuthActionToken } from "./token-service";
@@ -71,6 +72,7 @@ export async function registerCustomerAccount(
         targetUrl: "/admin/customers",
       });
     });
+    scheduleImmediatePushDispatch();
   } catch {
     // Best-effort admin alert; never fail registration.
   }

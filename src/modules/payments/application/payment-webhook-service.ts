@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { Prisma, type PrismaClient } from "@prisma/client";
 import { requireRazorpayWebhookSecret } from "@/config/env";
 import { getPrisma } from "@/lib/prisma";
+import { scheduleImmediatePushDispatch } from "@/modules/notifications/notification-worker-service";
 import { verifyRazorpayWebhookSignature } from "../infrastructure/razorpay-signature";
 import {
   markPaymentAuthorizedInTx,
@@ -156,6 +157,10 @@ export async function processRazorpayWebhook(params: {
 
       return { duplicate: false, message: "Webhook processed." };
     });
+
+    if (!outcome.duplicate) {
+      scheduleImmediatePushDispatch();
+    }
 
     return {
       status: 200,

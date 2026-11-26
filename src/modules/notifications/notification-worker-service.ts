@@ -442,3 +442,196 @@ export async function retryAdminNotification(
 
   return { ok: true };
 }
+
+async function claimNextPushNotificationJob(
+  workerId: string,
+  prisma: PrismaClient,
+): Promise<NotificationJob | null> {
+  const rows = await prisma.$queryRaw<NotificationJob[]>`
+    UPDATE "NotificationJob"
+    SET
+      "status" = 'PROCESSING',
+      "lockedUntil" = NOW() + INTERVAL '2 minutes',
+      "lockedBy" = ${workerId},
+      "attempts" = "attempts" + 1,
+      "updatedAt" = NOW()
+    WHERE "id" = (
+      SELECT j."id"
+      FROM "NotificationJob" j
+      INNER JOIN "Notification" n ON n."id" = j."notificationId"
+      WHERE n."channel" = 'PUSH'
+        AND j."status" IN ('PENDING', 'FAILED')
+        AND j."nextRunAt" <= NOW()
+        AND (j."lockedUntil" IS NULL OR j."lockedUntil" < NOW())
+      ORDER BY j."nextRunAt" ASC
+      FOR UPDATE OF j SKIP LOCKED
+      LIMIT 1
+    )
+    RETURNING *
+  `;
+  return rows[0] ?? null;
+}
+
+export async function dispatchPendingPushJobsBestEffort(
+  limit = 10,
+  prismaClient?: PrismaClient,
+): Promise<number> {
+  const prisma = prismaClient ?? getPrisma();
+  let processed = 0;
+
+  for (let i = 0; i < limit; i++) {
+    const job = await claimNextPushNotificationJob(`push-imm-${randomUUID().slice(0, 8)}`, prisma);
+    if (!job) break;
+    processed += 1;
+
+    const notification = await prisma.notification.findUnique({
+      where: { id: job.notificationId },
+    });
+    if (!notification || notification.channel !== "PUSH") {
+      await prisma.notificationJob.update({
+        where: { id: job.id },
+        data: { status: "DEAD_LETTER", lastError: "Push notification record missing.", lockedUntil: null },
+      });
+      continue;
+    }
+
+    await prisma.notification.update({
+      where: { id: notification.id },
+      data: {
+        status: "PROCESSING",
+        attemptCount: { increment: 1 },
+        lastAttemptAt: new Date(),
+      },
+    });
+
+    try {
+      const sub = notification.pushSubscriptionId
+        ? await prisma.pushSubscription.findUnique({ where: { id: notification.pushSubscriptionId } })
+        : await prisma.pushSubscription.findUnique({ where: { endpoint: notification.recipient } });
+
+      if (!sub || !sub.isActive) {
+        const now = new Date();
+        await prisma.$transaction([
+          prisma.notification.update({
+            where: { id: notification.id },
+            data: { status: "DEAD_LETTER", failedAt: now, lastError: "Push subscription missing or inactive." },
+          }),
+          prisma.notificationJob.update({
+            where: { id: job.id },
+            data: {
+              status: "DEAD_LETTER",
+              lockedUntil: null,
+              lockedBy: null,
+              lastError: "Push subscription missing or inactive.",
+            },
+          }),
+        ]);
+        continue;
+      }
+
+      const rawPayload =
+        notification.payload && typeof notification.payload === "object"
+          ? (notification.payload as Record<string, unknown>)
+          : {};
+      const title =
+        typeof rawPayload.title === "string" && rawPayload.title.trim().length > 0
+          ? rawPayload.title
+          : notification.subject;
+      const body =
+        typeof rawPayload.body === "string" && rawPayload.body.trim().length > 0
+          ? rawPayload.body
+          : notification.subject;
+      const url =
+        notification.targetUrl ??
+        (typeof rawPayload.url === "string" ? rawPayload.url : undefined);
+      const tag =
+        typeof rawPayload.tag === "string" ? rawPayload.tag : notification.eventType;
+
+      const pushResult = await sendWebPushNotification({
+        endpoint: sub.endpoint,
+        p256dh: sub.p256dh,
+        auth: sub.auth,
+        payload: { title, body, url, tag },
+      });
+
+      const now = new Date();
+      if (pushResult.ok) {
+        await prisma.$transaction([
+          prisma.notification.update({
+            where: { id: notification.id },
+            data: { status: "SENT", sentAt: now, lastError: null },
+          }),
+          prisma.notificationJob.update({
+            where: { id: job.id },
+            data: {
+              status: "SENT",
+              completedAt: now,
+              lockedUntil: null,
+              lockedBy: null,
+              lastError: null,
+            },
+          }),
+          prisma.pushSubscription.update({
+            where: { id: sub.id },
+            data: { lastUsedAt: now },
+          }),
+        ]);
+      } else if (pushResult.expired) {
+        await prisma.$transaction([
+          prisma.pushSubscription.update({ where: { id: sub.id }, data: { isActive: false } }),
+          prisma.notification.update({
+            where: { id: notification.id },
+            data: { status: "DEAD_LETTER", failedAt: now, lastError: pushResult.error },
+          }),
+          prisma.notificationJob.update({
+            where: { id: job.id },
+            data: { status: "DEAD_LETTER", lockedUntil: null, lockedBy: null, lastError: pushResult.error },
+          }),
+        ]);
+      } else {
+        const exhausted = job.attempts >= job.maxAttempts;
+        const isPermanent = !pushResult.retryable && !pushResult.skipped;
+        const nextStatus = isPermanent || exhausted ? "DEAD_LETTER" : "FAILED";
+        const backoffSeconds = Math.min(3600, 30 * 2 ** Math.max(0, job.attempts - 1));
+        await prisma.$transaction([
+          prisma.notification.update({
+            where: { id: notification.id },
+            data: { status: nextStatus, failedAt: now, lastError: pushResult.error },
+          }),
+          prisma.notificationJob.update({
+            where: { id: job.id },
+            data: {
+              status: nextStatus,
+              lockedUntil: null,
+              lockedBy: null,
+              lastError: pushResult.error,
+              nextRunAt: new Date(now.getTime() + backoffSeconds * 1000),
+            },
+          }),
+        ]);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message.slice(0, 300) : "Push delivery failed.";
+      const now = new Date();
+      await prisma.$transaction([
+        prisma.notification.update({
+          where: { id: notification.id },
+          data: { status: "DEAD_LETTER", failedAt: now, lastError: message },
+        }),
+        prisma.notificationJob.update({
+          where: { id: job.id },
+          data: { status: "DEAD_LETTER", lockedUntil: null, lockedBy: null, lastError: message },
+        }),
+      ]);
+    }
+  }
+
+  return processed;
+}
+
+export function scheduleImmediatePushDispatch(): void {
+  if (process.env.VITEST) return;
+  void dispatchPendingPushJobsBestEffort().catch(() => {
+    // Durable NotificationJob remains queued for scheduled cron retry.
+  });
+}

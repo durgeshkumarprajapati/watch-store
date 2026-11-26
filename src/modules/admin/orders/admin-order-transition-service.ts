@@ -6,6 +6,7 @@ import {
   enqueueAdminBroadcastInTx,
   enqueueOrderNotificationInTx,
 } from "@/modules/notifications/notification-outbox-service";
+import { scheduleImmediatePushDispatch } from "@/modules/notifications/notification-worker-service";
 import { recordAdminAuditLog } from "../admin-audit-service";
 import type { AuthenticatedAdmin } from "../admin-auth-service";
 import {
@@ -191,6 +192,7 @@ export async function transitionAdminOrderStatus(
       );
     }
 
+    scheduleImmediatePushDispatch();
     return result;
   } catch (error) {
     if (error instanceof OrderRuleError) return { ok: false, error: error.message };
@@ -283,6 +285,7 @@ export async function markOrderPacked(
       );
     }
 
+    scheduleImmediatePushDispatch();
     return result;
   } catch (error) {
     if (error instanceof OrderRuleError) return { ok: false, error: error.message };
@@ -375,6 +378,7 @@ export async function dispatchAdminOrder(
       );
     }
 
+    scheduleImmediatePushDispatch();
     return result;
   } catch (error) {
     if (error instanceof OrderRuleError) return { ok: false, error: error.message };
@@ -456,6 +460,7 @@ export async function confirmCodPaymentCollected(
       );
     }
 
+    scheduleImmediatePushDispatch();
     return result;
   } catch (error) {
     if (error instanceof OrderRuleError) return { ok: false, error: error.message };
@@ -579,6 +584,7 @@ export async function cancelAdminOrder(
       );
     }
 
+    scheduleImmediatePushDispatch();
     return result;
   } catch (error) {
     if (error instanceof OrderRuleError) return { ok: false, error: error.message };

@@ -7,6 +7,7 @@ import {
   enqueueAdminBroadcastInTx,
   enqueueOrderNotificationInTx,
 } from "@/modules/notifications/notification-outbox-service";
+import { scheduleImmediatePushDispatch } from "@/modules/notifications/notification-worker-service";
 import { isActiveShipmentStatus } from "../domain/shipment-state-machine";
 import { getShiprocketAuthToken } from "../infrastructure/shiprocket-auth-service";
 import {
@@ -325,6 +326,7 @@ export async function createShiprocketShipment(
       });
     });
 
+    scheduleImmediatePushDispatch();
     return {
       ok: false,
       error: message,

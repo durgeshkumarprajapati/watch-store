@@ -8,6 +8,7 @@ import type { CartLine } from "@/modules/cart/cart-store";
 import type { Product } from "@/modules/catalogue/types";
 import { InsufficientStockError, reserveStockInTx } from "@/modules/inventory/reservation-service";
 import { enqueueAdminBroadcastInTx } from "@/modules/notifications/notification-outbox-service";
+import { scheduleImmediatePushDispatch } from "@/modules/notifications/notification-worker-service";
 import type { ValidatedCheckoutInput } from "@/validations/checkout";
 import { canTransitionOrderStatus } from "./status-transitions";
 
@@ -363,6 +364,7 @@ export async function createPersistentOrder(
       return { order: mapPersistedOrder(created), idempotentReplay: false };
     }, { maxWait: 10000, timeout: 25000 });
 
+    scheduleImmediatePushDispatch();
     return { ok: true, ...outcome };
   } catch (err) {
     // Concurrent duplicate request hit unique idempotencyKey constraint
