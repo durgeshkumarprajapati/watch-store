@@ -190,4 +190,64 @@ describeWithDb("Phase 18 Customer Invoices PostgreSQL integration against watchs
       await prisma.product.update({ where: { id: product.id }, data: { pricePaise: origPrice } });
     }
   });
+
+  it("assigns distinct sequential invoice numbers to concurrent requests for different delivered orders", async () => {
+    const suffix = `conc-${Date.now()}`;
+    const email = `p18-conc-${suffix}@watchstore.test`;
+    createdCustomerEmails.push(email);
+
+    const product = await prisma.product.findFirstOrThrow({
+      where: { isActive: true, pricePaise: { lte: 5000000 } },
+      include: { stock: true },
+    });
+    if ((product.stock?.available ?? 0) < 5) {
+      await prisma.productStock.upsert({
+        where: { productId: product.id },
+        create: { productId: product.id, available: 10, reserved: 0 },
+        update: { available: { increment: 10 } },
+      });
+    }
+
+    const createAndDeliver = async (tag: string) => {
+      const idempotencyKey = `p18-c-${tag}-${suffix}`;
+      const res = await createPersistentOrder(
+        {
+          fullName: "Concurrent Collector",
+          email,
+          phone: "9876543210",
+          addressLine1: "42 Marine Drive",
+          addressLine2: "",
+          city: "Mumbai",
+          state: "Maharashtra",
+          pinCode: "400001",
+          country: "India",
+          paymentMethod: "cod",
+          shippingMethod: "standard",
+          idempotencyKey,
+        },
+        [{ productId: product.id, quantity: 1 }],
+        null,
+        null,
+      );
+      if (!res.ok) throw new Error(res.error);
+      const ord = await prisma.order.findUniqueOrThrow({ where: { idempotencyKey } });
+      createdOrderIds.push(ord.id);
+      await transitionAdminOrderStatus(actor, { orderId: ord.id, targetStatus: "CONFIRMED", idempotencyKey: `cnf-${tag}-${suffix}` }, prisma);
+      await markOrderPacked(actor, { orderId: ord.id, idempotencyKey: `pack-${tag}-${suffix}` }, prisma);
+      await dispatchAdminOrder(actor, { orderId: ord.id, carrierName: "BlueDart", trackingNumber: `BD-${tag}-${suffix}`, idempotencyKey: `ship-${tag}-${suffix}` }, prisma);
+      await transitionAdminOrderStatus(actor, { orderId: ord.id, targetStatus: "DELIVERED", idempotencyKey: `del-${tag}-${suffix}` }, prisma);
+      return ord.id;
+    };
+
+    const [ordA, ordB] = await Promise.all([createAndDeliver("a"), createAndDeliver("b")]);
+    const [invA, invB] = await Promise.all([
+      generateOrGetOrderInvoice({ orderId: ordA, sellerOverride }, prisma),
+      generateOrGetOrderInvoice({ orderId: ordB, sellerOverride }, prisma),
+    ]);
+
+    expect(invA.ok && invB.ok).toBe(true);
+    if (invA.ok && invB.ok) {
+      expect(invA.invoiceNumber).not.toBe(invB.invoiceNumber);
+    }
+  });
 });

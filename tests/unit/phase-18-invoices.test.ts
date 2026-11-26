@@ -118,7 +118,12 @@ describe("Phase 18 — Customer Invoices, PDF Generation & API Security", () => 
     expect(isOrderEligibleForInvoice("CANCELLED")).toBe(false);
     expect(isOrderEligibleForInvoice("DELIVERED")).toBe(true);
 
-    expect(() => resolveSellerInvoiceConfig()).toThrow(InvoiceConfigurationError);
+    expect(() =>
+      resolveSellerInvoiceConfig({
+        legalName: "[LEGAL_NAME]",
+        address: "Address line, City, State PIN",
+      }),
+    ).toThrow(InvoiceConfigurationError);
 
     const valid = resolveSellerInvoiceConfig({
       legalName: "WatchStore Horology Pvt Ltd",

@@ -107,7 +107,8 @@ class PdfPageBuilder {
     const escaped = pdfEscape(text);
     let drawX = x;
     if (opts?.alignRight) {
-      const approxWidth = escaped.length * size * 0.52;
+      const charFactor = font === "F3" ? 0.605 : font === "F2" ? 0.55 : 0.52;
+      const approxWidth = escaped.length * size * charFactor;
       drawX = Math.max(MARGIN_X, x - approxWidth);
     }
     this.ops.push(`${rgb[0].toFixed(3)} ${rgb[1].toFixed(3)} ${rgb[2].toFixed(3)} rg`);
@@ -360,11 +361,12 @@ export function renderInvoicePdf(snapshot: InvoiceSnapshot): Buffer {
 
   for (const [label, value, highlight] of summaryRows) {
     if (highlight) {
+      sy -= 4;
       doc.drawRect(sumX - 6, sy - 5, A4_WIDTH - MARGIN_X - sumX + 6, 18, [0.95, 0.93, 0.89]);
     }
     doc.drawText(label, sumX, sy, { font: highlight ? "F2" : "F1", size: highlight ? 10 : 8.5 });
     doc.drawText(value, valX, sy, { font: highlight ? "F2" : "F3", size: highlight ? 10 : 8.5, alignRight: true });
-    sy -= highlight ? 20 : 13;
+    sy -= highlight ? 22 : 14;
   }
 
   return doc.buildPdfBuffer(`${snapshot.seller.legalName} | Support: ${snapshot.seller.email}`);
