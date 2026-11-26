@@ -247,7 +247,7 @@ describeWithDb("Phase 13 Transactional Notifications PostgreSQL integration", ()
       data: {
         status: "FAILED",
         lockedUntil: new Date(Date.now() - 60_000),
-        nextRunAt: new Date(Date.now() - 86_400_000),
+        nextRunAt: new Date(0),
       },
     });
 
@@ -264,7 +264,7 @@ describeWithDb("Phase 13 Transactional Notifications PostgreSQL integration", ()
 
     await prisma.notificationJob.update({
       where: { notificationId: notif.id },
-      data: { nextRunAt: new Date(Date.now() - 86_400_000) },
+      data: { nextRunAt: new Date(0) },
     });
 
     const sentRes = await processNextNotificationJob(

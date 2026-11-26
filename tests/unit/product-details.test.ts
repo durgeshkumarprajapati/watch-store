@@ -10,6 +10,10 @@ vi.mock("next/headers", () => ({
   }),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("@/config/env", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/config/env")>();
+  return { ...actual, hasDatabaseUrl: () => false };
+});
 
 import { seedProductRepository as repo } from "@/modules/catalogue/seed/seed-product-repository";
 import { discountPercent } from "@/modules/catalogue/summary";
