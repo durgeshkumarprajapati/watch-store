@@ -174,7 +174,7 @@ describeWithDb("Phase 13 Transactional Notifications PostgreSQL integration", ()
         currency: "INR",
       }),
     );
-    expect(await prisma.notification.count({ where: { orderId: order.id } })).toBe(2);
+    expect(await prisma.notification.count({ where: { orderId: order.id, channel: "EMAIL" } })).toBe(2);
 
     // Second order: payment failure + cancellation
     const order2 = await placeOrder("razorpay", `${suffix}-2`);
@@ -184,7 +184,7 @@ describeWithDb("Phase 13 Transactional Notifications PostgreSQL integration", ()
     );
     expect(
       await prisma.notification.count({
-        where: { orderId: order2.id, eventType: "PAYMENT_FAILED" },
+        where: { orderId: order2.id, eventType: "PAYMENT_FAILED", channel: "EMAIL" },
       }),
     ).toBe(1);
 
@@ -195,7 +195,7 @@ describeWithDb("Phase 13 Transactional Notifications PostgreSQL integration", ()
     );
     expect(
       await prisma.notification.count({
-        where: { orderId: order2.id, eventType: "ORDER_CANCELLED" },
+        where: { orderId: order2.id, eventType: "ORDER_CANCELLED", channel: "EMAIL" },
       }),
     ).toBe(1);
   });
@@ -211,7 +211,7 @@ describeWithDb("Phase 13 Transactional Notifications PostgreSQL integration", ()
       prisma,
     );
     const notif = await prisma.notification.findFirstOrThrow({
-      where: { orderId: order.id, eventType: "COD_ORDER_CONFIRMED" },
+      where: { orderId: order.id, eventType: "COD_ORDER_CONFIRMED", channel: "EMAIL" },
     });
 
     // Customer disables optional shipping updates; optional SHIPMENT_CREATED is skipped, mandatory stays active
@@ -292,7 +292,7 @@ describeWithDb("Phase 13 Transactional Notifications PostgreSQL integration", ()
       prisma,
     );
     expect(invalid.ok).toBe(false);
-    expect(await prisma.notification.count({ where: { orderId } })).toBe(0);
+    expect(await prisma.notification.count({ where: { orderId, channel: "EMAIL" } })).toBe(0);
 
     // CONFIRMED (COD)
     const confirmed = await transitionAdminOrderStatus(
@@ -341,7 +341,7 @@ describeWithDb("Phase 13 Transactional Notifications PostgreSQL integration", ()
     expect(delivered.ok).toBe(true);
 
     const notifs = await prisma.notification.findMany({
-      where: { orderId },
+      where: { orderId, channel: "EMAIL" },
       orderBy: { createdAt: "asc" },
     });
     expect(notifs.map((n) => n.dedupeKey)).toEqual([

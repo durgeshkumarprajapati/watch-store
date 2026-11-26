@@ -21,6 +21,10 @@ export default async function AdminSettingsPage() {
     { name: "Shiprocket Shipping", configured: Boolean(env.SHIPROCKET_API_EMAIL && env.SHIPROCKET_API_PASSWORD) },
     { name: "Resend Transactional Email", configured: Boolean(env.RESEND_API_KEY) },
     {
+      name: "VAPID Browser Push",
+      configured: Boolean(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY && env.VAPID_SUBJECT),
+    },
+    {
       name: "Cloudinary Media Storage",
       configured: Boolean(
         env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET,

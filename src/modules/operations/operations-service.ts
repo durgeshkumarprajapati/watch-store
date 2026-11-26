@@ -190,12 +190,25 @@ export async function executeScheduledNotificationProcess(prisma?: PrismaClient)
     async (db) => {
       let processed = 0;
       let errors = 0;
-      for (let i = 0; i < 20; i++) {
-        const res = await processNextNotificationJob(undefined, undefined, db);
-        if (!res.claimed) break;
-        processed += 1;
-        if (res.status === "FAILED" || res.status === "DEAD_LETTER") errors += 1;
+      const batchSize = 5;
+      const maxJobs = 25;
+
+      for (let offset = 0; offset < maxJobs; offset += batchSize) {
+        const results = await Promise.all(
+          Array.from({ length: batchSize }, (_, idx) =>
+            processNextNotificationJob(`cron-${offset + idx}`, undefined, db),
+          ),
+        );
+        let claimedInBatch = 0;
+        for (const res of results) {
+          if (!res.claimed) continue;
+          claimedInBatch += 1;
+          processed += 1;
+          if (res.status === "FAILED" || res.status === "DEAD_LETTER") errors += 1;
+        }
+        if (claimedInBatch < batchSize) break;
       }
+
       return { processedCount: processed, errorCount: errors, summary: { processed } };
     },
     prisma,

@@ -2,7 +2,10 @@ import "server-only";
 import type { OrderStatus, PaymentStatus, Prisma } from "@prisma/client";
 import { canTransitionOrderStatus, canTransitionPaymentStatus } from "@/modules/checkout/status-transitions";
 import { commitReservationInTx } from "@/modules/inventory/reservation-service";
-import { enqueueOrderNotificationInTx } from "@/modules/notifications/notification-outbox-service";
+import {
+  enqueueAdminBroadcastInTx,
+  enqueueOrderNotificationInTx,
+} from "@/modules/notifications/notification-outbox-service";
 
 export type SettlementResult =
   | {
@@ -188,6 +191,14 @@ export async function markPaymentCapturedInTx(
     eventType: "PAYMENT_SUCCESS",
     dedupeKey: `PAYMENT_SUCCESS:${payment.order.id}`,
   });
+  await enqueueAdminBroadcastInTx(tx, {
+    eventType: "PAYMENT_RECEIVED_ADMIN",
+    dedupeKey: `admin-payment-received:${payment.order.id}`,
+    title: `Payment received for ${payment.order.orderNumber}`,
+    body: `Online payment settled for order ${payment.order.orderNumber}.`,
+    targetUrl: `/admin/orders/${payment.order.id}`,
+    orderId: payment.order.id,
+  });
   if (nextOrderStatus === "CONFIRMED") {
     await enqueueOrderNotificationInTx(tx, {
       orderId: payment.order.id,
@@ -282,6 +293,14 @@ export async function markPaymentFailedInTx(
       orderId: payment.order.id,
       eventType: "PAYMENT_FAILED",
       dedupeKey: `PAYMENT_FAILED:${payment.id}:${params.attemptId ?? params.razorpayPaymentId ?? "failed"}`,
+    });
+    await enqueueAdminBroadcastInTx(tx, {
+      eventType: "PAYMENT_FAILED_ADMIN",
+      dedupeKey: `admin-payment-failed:${payment.id}:${params.attemptId ?? params.razorpayPaymentId ?? "failed"}`,
+      title: `Payment failed for ${payment.order.orderNumber}`,
+      body: params.errorMessage ?? "Payment failed at gateway.",
+      targetUrl: `/admin/orders/${payment.order.id}`,
+      orderId: payment.order.id,
     });
   }
 

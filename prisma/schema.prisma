@@ -88,6 +88,8 @@ enum ShippingJobStatus {
 
 enum NotificationChannel {
   EMAIL
+  IN_APP
+  PUSH
 }
 
 enum NotificationStatus {
@@ -108,6 +110,15 @@ enum NotificationEventType {
   OUT_FOR_DELIVERY
   ORDER_DELIVERED
   ORDER_CANCELLED
+  SECURITY_ALERT
+  NEW_ORDER_ADMIN
+  PAYMENT_RECEIVED_ADMIN
+  PAYMENT_FAILED_ADMIN
+  NEW_CUSTOMER_ADMIN
+  LOW_STOCK_ADMIN
+  SHIPMENT_EXCEPTION_ADMIN
+  REFUND_REQUIRED_ADMIN
+  NOTIFICATION_FAILED_ADMIN
 }
 
 enum CatalogueSyncDirection {
@@ -438,6 +449,7 @@ model Customer {
   orders                 Order[]
   notifications          Notification[]
   notificationPreference NotificationPreference?
+  pushSubscriptions      PushSubscription[]
 }
 
 model CustomerAddress {
@@ -644,6 +656,8 @@ model AdminUser {
   shipmentHistoryLogs      ShipmentStatusHistory[]  @relation("ShipmentHistoryActor")
   sheetsConnectionsUpdated GoogleSheetsConnection[] @relation("SheetsConnectionUpdater")
   catalogueSyncJobsStarted CatalogueSyncJob[]       @relation("CatalogueSyncStarter")
+  notifications            Notification[]
+  pushSubscriptions        PushSubscription[]
 
   @@index([isActive])
 }
@@ -815,31 +829,61 @@ model ShippingJob {
   @@index([shipmentId, status])
 }
 
+model PushSubscription {
+  id            String         @id @default(cuid())
+  customerId    String?
+  customer      Customer?      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  adminUserId   String?
+  adminUser     AdminUser?     @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  endpoint      String         @unique
+  p256dh        String
+  auth          String
+  userAgent     String?
+  isActive      Boolean        @default(true)
+  lastUsedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  notifications Notification[]
+
+  @@index([customerId, isActive])
+  @@index([adminUserId, isActive])
+  @@index([isActive, updatedAt])
+}
+
 model Notification {
-  id                String                @id @default(cuid())
-  customerId        String?
-  customer          Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  orderId           String?
-  order             Order?                @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  eventType         NotificationEventType
-  channel           NotificationChannel   @default(EMAIL)
-  recipient         String
-  subject           String
-  payload           Json
-  status            NotificationStatus    @default(PENDING)
-  provider          String                @default("RESEND")
-  providerMessageId String?
-  dedupeKey         String                @unique
-  attemptCount      Int                   @default(0)
-  lastAttemptAt     DateTime?
-  sentAt            DateTime?
-  failedAt          DateTime?
-  lastError         String?
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-  job               NotificationJob?
+  id                 String                @id @default(cuid())
+  customerId         String?
+  customer           Customer?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  adminUserId        String?
+  adminUser          AdminUser?            @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  pushSubscriptionId String?
+  pushSubscription   PushSubscription?     @relation(fields: [pushSubscriptionId], references: [id], onDelete: SetNull)
+  orderId            String?
+  order              Order?                @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  eventType          NotificationEventType
+  channel            NotificationChannel   @default(EMAIL)
+  recipient          String
+  subject            String
+  payload            Json
+  targetUrl          String?
+  readAt             DateTime?
+  status             NotificationStatus    @default(PENDING)
+  provider           String                @default("RESEND")
+  providerMessageId  String?
+  dedupeKey          String                @unique
+  attemptCount       Int                   @default(0)
+  lastAttemptAt      DateTime?
+  sentAt             DateTime?
+  failedAt           DateTime?
+  lastError          String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  job                NotificationJob?
 
   @@index([customerId, createdAt])
+  @@index([customerId, channel, readAt])
+  @@index([adminUserId, channel, createdAt])
+  @@index([adminUserId, channel, readAt])
   @@index([orderId, createdAt])
   @@index([status, createdAt])
   @@index([eventType, createdAt])

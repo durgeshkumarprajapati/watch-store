@@ -67,6 +67,11 @@ function SidebarContent({
         {visibleNav.map((i) => (
           <NavLink key={i.href} item={i} active={isActive(i.href)} onClick={onNavigate} />
         ))}
+        <NavLink
+          item={{ href: "/admin/inbox", label: "Inbox & Push", icon: "notifications" } as AdminNavItem}
+          active={isActive("/admin/inbox")}
+          onClick={onNavigate}
+        />
         {showSettings && (
           <NavLink
             item={adminSettingsNav}

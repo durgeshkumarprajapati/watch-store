@@ -2,7 +2,10 @@ import type { FulfilmentStatus, OrderStatus, PaymentProvider, PaymentStatus, Pri
 import { getPrisma } from "@/lib/prisma";
 import { canTransitionOrderStatus, canTransitionPaymentStatus } from "@/modules/checkout/status-transitions";
 import { commitReservationInTx, releaseReservationInTx } from "@/modules/inventory/reservation-service";
-import { enqueueOrderNotificationInTx } from "@/modules/notifications/notification-outbox-service";
+import {
+  enqueueAdminBroadcastInTx,
+  enqueueOrderNotificationInTx,
+} from "@/modules/notifications/notification-outbox-service";
 import { recordAdminAuditLog } from "../admin-audit-service";
 import type { AuthenticatedAdmin } from "../admin-auth-service";
 import {
@@ -543,6 +546,16 @@ export async function cancelAdminOrder(
         newStatus: "CANCELLED",
         statusUpdatedAt: cancelledAt,
       });
+      if (manualRefundRequired) {
+        await enqueueAdminBroadcastInTx(tx, {
+          eventType: "REFUND_REQUIRED_ADMIN",
+          dedupeKey: `admin-refund-req:${order.id}`,
+          title: `Manual refund required for ${order.orderNumber}`,
+          body: `Prepaid order ${order.orderNumber} was cancelled and requires manual refund.`,
+          targetUrl: `/admin/orders/${order.id}`,
+          orderId: order.id,
+        });
+      }
 
       return {
         ok: true as const,

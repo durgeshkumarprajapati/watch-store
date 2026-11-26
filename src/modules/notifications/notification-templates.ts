@@ -54,6 +54,51 @@ export const NOTIFICATION_EVENT_CATALOGUE: Record<
     isMandatory: true,
     description: "Sent when an order cancellation is committed.",
   },
+  SECURITY_ALERT: {
+    label: "Security Alert",
+    isMandatory: true,
+    description: "Sent for important account security events.",
+  },
+  NEW_ORDER_ADMIN: {
+    label: "New Order (Admin)",
+    isMandatory: true,
+    description: "Admin alert when a new order is placed.",
+  },
+  PAYMENT_RECEIVED_ADMIN: {
+    label: "Payment Received (Admin)",
+    isMandatory: true,
+    description: "Admin alert when a payment is captured.",
+  },
+  PAYMENT_FAILED_ADMIN: {
+    label: "Payment Failed (Admin)",
+    isMandatory: true,
+    description: "Admin alert when a payment attempt fails.",
+  },
+  NEW_CUSTOMER_ADMIN: {
+    label: "New Customer (Admin)",
+    isMandatory: true,
+    description: "Admin alert when a new customer account registers.",
+  },
+  LOW_STOCK_ADMIN: {
+    label: "Low Stock Alert (Admin)",
+    isMandatory: true,
+    description: "Admin alert when product stock reaches low-stock threshold.",
+  },
+  SHIPMENT_EXCEPTION_ADMIN: {
+    label: "Shipment Exception (Admin)",
+    isMandatory: true,
+    description: "Admin alert when shipment creation or tracking fails.",
+  },
+  REFUND_REQUIRED_ADMIN: {
+    label: "Manual Refund Required (Admin)",
+    isMandatory: true,
+    description: "Admin alert when a prepaid order cancellation requires manual refund.",
+  },
+  NOTIFICATION_FAILED_ADMIN: {
+    label: "Notification Delivery Failure (Admin)",
+    isMandatory: true,
+    description: "Admin alert when an outbound notification enters dead-letter.",
+  },
 };
 
 export const notificationPayloadSchema = z.object({
@@ -165,6 +210,54 @@ function getOrderSubjectAndHeading(
         heading: "Order Cancelled",
         intro: `Your order ${orderNumber} has been cancelled.`,
       };
+    default:
+      return {
+        subject: `${brand.name} — Order ${orderNumber} Update`,
+        heading: "Order Update",
+        intro: `There is an update on your order ${orderNumber}.`,
+      };
+  }
+}
+
+export function renderPushSummaryForOrderEvent(
+  eventType: NotificationEventType,
+  payload: NotificationPayload,
+): { title: string; body: string; url: string } {
+  const url = `/account/orders/${encodeURIComponent(payload.orderId)}`;
+  if (eventType === "ORDER_CONFIRMED" && payload.newStatus === "PROCESSING") {
+    return {
+      title: `${brand.name}: Order Being Prepared`,
+      body: `Order ${payload.orderNumber} is now in processing.`,
+      url,
+    };
+  }
+  switch (eventType) {
+    case "ORDER_CONFIRMED":
+      return { title: `${brand.name}: Order Confirmed`, body: `Order ${payload.orderNumber} is confirmed.`, url };
+    case "COD_ORDER_CONFIRMED":
+      return { title: `${brand.name}: COD Order Confirmed`, body: `Order ${payload.orderNumber} is confirmed.`, url };
+    case "PAYMENT_SUCCESS":
+      return { title: `${brand.name}: Payment Received`, body: `Payment for order ${payload.orderNumber} succeeded.`, url };
+    case "PAYMENT_FAILED":
+      return { title: `${brand.name}: Payment Issue`, body: `Payment for order ${payload.orderNumber} could not be completed.`, url };
+    case "SHIPMENT_CREATED":
+      return { title: `${brand.name}: Shipment Prepared`, body: `Shipment prepared for order ${payload.orderNumber}.`, url };
+    case "SHIPMENT_DISPATCHED":
+      return {
+        title: `${brand.name}: Order Dispatched`,
+        body: payload.courierName
+          ? `Order ${payload.orderNumber} shipped via ${payload.courierName}.`
+          : `Order ${payload.orderNumber} has been dispatched.`,
+        url,
+      };
+    case "OUT_FOR_DELIVERY":
+      return { title: `${brand.name}: Out for Delivery`, body: `Order ${payload.orderNumber} is out for delivery today.`, url };
+    case "ORDER_DELIVERED":
+      return { title: `${brand.name}: Order Delivered`, body: `Order ${payload.orderNumber} has been delivered.`, url };
+    case "ORDER_CANCELLED":
+      return { title: `${brand.name}: Order Cancelled`, body: `Order ${payload.orderNumber} has been cancelled.`, url };
+    default:
+      return { title: `${brand.name}: Order Update`, body: `Update available for order ${payload.orderNumber}.`, url };
   }
 }
 
