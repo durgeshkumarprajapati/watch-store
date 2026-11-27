@@ -28,8 +28,11 @@ export function NotificationBell({
   const [unreadCount, setUnreadCount] = useState(0);
   const [busy, setBusy] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const inFlightRef = useRef(false);
 
   const fetchInbox = useCallback(async () => {
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     try {
       const res = await fetch("/api/notifications/inbox", { cache: "no-store" });
       if (!res.ok) return;
@@ -41,12 +44,16 @@ export function NotificationBell({
       setUnreadCount(Number(data.unreadCount ?? 0));
     } catch {
       // Ignore transient network errors in header polling
+    } finally {
+      inFlightRef.current = false;
     }
   }, []);
 
   useEffect(() => {
     let active = true;
     async function load() {
+      if (document.visibilityState !== "visible" || inFlightRef.current) return;
+      inFlightRef.current = true;
       try {
         const res = await fetch("/api/notifications/inbox", { cache: "no-store" });
         if (!active || !res.ok) return;
@@ -59,15 +66,24 @@ export function NotificationBell({
         setUnreadCount(Number(data.unreadCount ?? 0));
       } catch {
         // Ignore transient network errors
+      } finally {
+        inFlightRef.current = false;
       }
     }
     void load();
     const timer = window.setInterval(() => {
       void load();
     }, 30_000);
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        void load();
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       active = false;
       window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);
 

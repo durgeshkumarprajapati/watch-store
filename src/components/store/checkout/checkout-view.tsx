@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { useEffect, useId, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/icon";
@@ -42,34 +42,79 @@ declare global {
   }
 }
 
+export interface CheckoutPrefill {
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  stateName?: string;
+  pinCode?: string;
+}
+
+let razorpayScriptPromise: Promise<boolean> | null = null;
+
 function loadRazorpayScript(): Promise<boolean> {
   if (typeof window === "undefined") return Promise.resolve(false);
   if (window.Razorpay) return Promise.resolve(true);
-  return new Promise((resolve) => {
+  if (razorpayScriptPromise) return razorpayScriptPromise;
+
+  const existing = document.querySelector<HTMLScriptElement>(
+    'script[src="https://checkout.razorpay.com/v1/checkout.js"]',
+  );
+  if (existing) {
+    razorpayScriptPromise = new Promise((resolve) => {
+      existing.addEventListener("load", () => resolve(Boolean(window.Razorpay)), { once: true });
+      existing.addEventListener("error", () => {
+        razorpayScriptPromise = null;
+        resolve(false);
+      }, { once: true });
+    });
+    return razorpayScriptPromise;
+  }
+
+  razorpayScriptPromise = new Promise((resolve) => {
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
     script.onload = () => resolve(Boolean(window.Razorpay));
-    script.onerror = () => resolve(false);
+    script.onerror = () => {
+      razorpayScriptPromise = null;
+      resolve(false);
+    };
     document.body.appendChild(script);
   });
+  return razorpayScriptPromise;
 }
 
-export function CheckoutView({ summary }: { summary: CartSummary }) {
+export function CheckoutView({
+  summary,
+  prefill,
+}: {
+  summary: CartSummary;
+  prefill?: CheckoutPrefill;
+}) {
   const router = useRouter();
   const sessionSeed = useId();
   const [idempotencyKey] = useState(() => `chk-${sessionSeed.replace(/[^a-zA-Z0-9]/g, "")}-${Date.now()}`);
   const [pending, startTransition] = useTransition();
 
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [addressLine1, setAddressLine1] = useState("");
-  const [addressLine2, setAddressLine2] = useState("");
-  const [city, setCity] = useState("");
-  const [stateName, setStateName] = useState("");
-  const [pinCode, setPinCode] = useState("");
+  const [fullName, setFullName] = useState(prefill?.fullName ?? "");
+  const [email, setEmail] = useState(prefill?.email ?? "");
+  const [phone, setPhone] = useState(prefill?.phone ?? "");
+  const [addressLine1, setAddressLine1] = useState(prefill?.addressLine1 ?? "");
+  const [addressLine2, setAddressLine2] = useState(prefill?.addressLine2 ?? "");
+  const [city, setCity] = useState(prefill?.city ?? "");
+  const [stateName, setStateName] = useState(prefill?.stateName ?? "");
+  const [pinCode, setPinCode] = useState(prefill?.pinCode ?? "");
   const [paymentMethod, setPaymentMethod] = useState<"razorpay" | "cod">("razorpay");
+
+  useEffect(() => {
+    if (paymentMethod === "razorpay" && summary.items.length > 0 && summary.canCheckout) {
+      void loadRazorpayScript();
+    }
+  }, [paymentMethod, summary.items.length, summary.canCheckout]);
 
   const [result, setResult] = useState<SubmitCheckoutResult | null>(null);
   const [paymentFeedback, setPaymentFeedback] = useState<string | null>(null);

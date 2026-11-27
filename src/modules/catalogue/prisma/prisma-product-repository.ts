@@ -23,7 +23,63 @@ const productInclude = {
   stock: true,
 } satisfies Prisma.ProductInclude;
 
+const productSummarySelect = {
+  id: true,
+  slug: true,
+  sku: true,
+  name: true,
+  gender: true,
+  watchType: true,
+  strapMaterial: true,
+  dialAndStrap: true,
+  mrpPaise: true,
+  pricePaise: true,
+  badge: true,
+  isBestSeller: true,
+  createdAt: true,
+  brand: { select: { id: true, name: true } },
+  categories: { select: { categoryId: true } },
+  images: { orderBy: { sortOrder: "asc" as const }, take: 1, select: { url: true } },
+  stock: { select: { available: true } },
+} satisfies Prisma.ProductSelect;
+
 type PrismaProductRow = Prisma.ProductGetPayload<{ include: typeof productInclude }>;
+type PrismaProductSummaryRow = Prisma.ProductGetPayload<{ select: typeof productSummarySelect }>;
+
+function mapSummaryRow(row: PrismaProductSummaryRow): Product {
+  return {
+    id: row.id,
+    slug: row.slug,
+    sku: row.sku,
+    name: row.name,
+    brand: { id: row.brand.id, name: row.brand.name },
+    categoryIds: row.categories.map((c) => c.categoryId),
+    gender: row.gender,
+    watchType: row.watchType,
+    strapMaterial: row.strapMaterial,
+    dialAndStrap: row.dialAndStrap,
+    description: "",
+    specs: {
+      movement: "",
+      caseDimensions: "",
+      crystal: "",
+      waterResistance: "",
+      hsn: "",
+    },
+    mrpPaise: row.mrpPaise,
+    pricePaise: row.pricePaise,
+    gstRateBps: 0,
+    badge: row.badge,
+    isBestSeller: row.isBestSeller,
+    images: row.images.map((i) => i.url),
+    stock: {
+      available: row.stock?.available ?? 0,
+      reserved: 0,
+    },
+    warrantyYears: 0,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
 
 function mapProduct(row: PrismaProductRow): Product {
   return {
@@ -142,11 +198,11 @@ export const prismaProductRepository: ProductRepository = {
             isBestSeller: true,
             ...(gender ? { gender: { in: [gender, "unisex"] } } : {}),
           },
-          include: productInclude,
+          select: productSummarySelect,
           orderBy: { createdAt: "asc" },
           take: limit,
         });
-        return rows.map((r) => toSummary(mapProduct(r)));
+        return rows.map((r) => toSummary(mapSummaryRow(r)));
       },
     );
   },
@@ -157,13 +213,21 @@ export const prismaProductRepository: ProductRepository = {
       const [productRows, categoryRows, brandRows] = await Promise.all([
         prisma.product.findMany({
           where: { isActive: true, brand: { isActive: true } },
-          include: productInclude,
+          select: productSummarySelect,
         }),
-        prisma.category.findMany({ where: { isActive: true }, orderBy: { id: "asc" } }),
-        prisma.brand.findMany({ where: { isActive: true }, orderBy: { id: "asc" } }),
+        prisma.category.findMany({
+          where: { isActive: true },
+          orderBy: { id: "asc" },
+          select: { id: true, slug: true, name: true, image: true },
+        }),
+        prisma.brand.findMany({
+          where: { isActive: true },
+          orderBy: { id: "asc" },
+          select: { id: true, name: true, slug: true },
+        }),
       ]);
 
-      const allProducts = productRows.map(mapProduct);
+      const allProducts = productRows.map(mapSummaryRow);
       const facets = buildFacets(allProducts, categoryRows, brandRows);
 
       const filtered = allProducts.filter((p) => {
@@ -255,7 +319,7 @@ export const prismaProductRepository: ProductRepository = {
             { brandId: product.brand.id },
           ],
         },
-        include: productInclude,
+        select: productSummarySelect,
         take: Math.max(limit * 3, 12),
       });
 
@@ -264,7 +328,7 @@ export const prismaProductRepository: ProductRepository = {
         const excludeIds = [product.id, ...candidates.map((r) => r.id)];
         const fallback = await prisma.product.findMany({
           where: { isActive: true, brand: { isActive: true }, id: { notIn: excludeIds } },
-          include: productInclude,
+          select: productSummarySelect,
           take: limit - candidates.length,
         });
         candidates = [...candidates, ...fallback];
@@ -272,7 +336,7 @@ export const prismaProductRepository: ProductRepository = {
 
       const catSet = new Set(product.categoryIds);
       return candidates
-        .map(mapProduct)
+        .map(mapSummaryRow)
         .map((p) => {
           let score = 0;
           if (p.categoryIds.some((c) => catSet.has(c))) score += 2;
