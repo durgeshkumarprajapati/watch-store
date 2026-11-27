@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { MediaImage } from "@/components/ui/media-image";
@@ -15,31 +15,64 @@ import {
 } from "@/modules/cart/actions";
 import type { CartSummary } from "@/modules/cart/cart-service";
 
+type OptimisticCartAction =
+  | { type: "qty"; productId: string; quantity: number }
+  | { type: "remove"; productId: string }
+  | { type: "clear" };
+
 export function CartView({ summary }: { summary: CartSummary }) {
   const [pending, startTransition] = useTransition();
   const [actionError, setActionError] = useState<string | null>(null);
   const [promoInput, setPromoInput] = useState("");
   const [promoError, setPromoError] = useState<string | null>(null);
 
+  const [optimisticItems, applyOptimistic] = useOptimistic(
+    summary.items,
+    (items, action: OptimisticCartAction) => {
+      switch (action.type) {
+        case "qty":
+          return items.map((item) =>
+            item.productId === action.productId
+              ? {
+                  ...item,
+                  quantity: action.quantity,
+                  lineTotalPaise: item.unitPricePaise * action.quantity,
+                }
+              : item,
+          );
+        case "remove":
+          return items.filter((item) => item.productId !== action.productId);
+        case "clear":
+          return [];
+      }
+    },
+  );
+
   function handleQtyChange(productId: string, nextQty: number) {
+    if (pending) return;
     setActionError(null);
     startTransition(async () => {
+      applyOptimistic({ type: "qty", productId, quantity: nextQty });
       const res = await updateCartQuantityAction(productId, nextQty);
       if (!res.ok) setActionError(res.error);
     });
   }
 
   function handleRemove(productId: string) {
+    if (pending) return;
     setActionError(null);
     startTransition(async () => {
+      applyOptimistic({ type: "remove", productId });
       const res = await removeFromCartAction(productId);
       if (!res.ok) setActionError(res.error);
     });
   }
 
   function handleClear() {
+    if (pending) return;
     setActionError(null);
     startTransition(async () => {
+      applyOptimistic({ type: "clear" });
       const res = await clearCartAction();
       if (!res.ok) setActionError(res.error);
     });
@@ -85,7 +118,7 @@ export function CartView({ summary }: { summary: CartSummary }) {
         </div>
       )}
 
-      {summary.items.length === 0 ? (
+      {optimisticItems.length === 0 ? (
         <div className="bg-surface border border-outline rounded-md p-10 sm:p-16 text-center max-w-2xl mx-auto flex flex-col items-center gap-4">
           <Icon name="shopping_bag" size={48} className="text-primary" />
           <h2 className="font-headline text-headline-lg text-on-surface">Your Shopping Bag is Empty</h2>
@@ -103,7 +136,7 @@ export function CartView({ summary }: { summary: CartSummary }) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
           {/* Items */}
           <div className="lg:col-span-8 flex flex-col gap-4">
-            {summary.items.map((item) => (
+            {optimisticItems.map((item) => (
               <article
                 key={item.productId}
                 className="bg-surface border border-outline rounded-md p-5 sm:p-6 flex flex-col sm:flex-row gap-5 sm:gap-6 items-start sm:items-center"

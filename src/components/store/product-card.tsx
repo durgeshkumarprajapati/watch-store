@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
 import { MediaImage } from "@/components/ui/media-image";
+import { StaticMediaImage } from "@/components/ui/static-media-image";
 import type { ProductBadge, ProductSummary } from "@/modules/catalogue/types";
 import { AddToBagButton } from "./add-to-bag-button";
 import { Price } from "./price";
@@ -21,7 +22,7 @@ export function ProductCard({ product, saved }: { product: ProductSummary; saved
     <article className="group bg-surface border border-outline rounded overflow-hidden flex flex-col h-full transition-[transform,box-shadow] duration-surface-enter hover:-translate-y-1 hover:shadow-ambient">
       <div className="relative">
         <Link href={href} tabIndex={-1} aria-hidden="true" className="block">
-          <MediaImage
+          <StaticMediaImage
             src={product.image?.src ?? null}
             alt={product.image?.alt ?? product.name}
             sizes="(min-width:1024px) 25vw, (min-width:640px) 50vw, 100vw"

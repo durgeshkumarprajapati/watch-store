@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
-import { MediaImage } from "@/components/ui/media-image";
+import { StaticMediaImage } from "@/components/ui/static-media-image";
 import type { CategorySummary } from "@/modules/catalogue/types";
 
 export function CategoryCard({ category }: { category: CategorySummary }) {
@@ -9,7 +9,7 @@ export function CategoryCard({ category }: { category: CategorySummary }) {
       href={`/products?category=${category.slug}`}
       className="group block bg-surface border border-outline rounded overflow-hidden transition-colors duration-state-change hover:border-primary"
     >
-      <MediaImage
+      <StaticMediaImage
         src={category.image}
         alt={category.name}
         sizes="(min-width:1024px) 25vw, 50vw"

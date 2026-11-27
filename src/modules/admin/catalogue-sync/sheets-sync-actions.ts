@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidatePublicCatalogueCache } from "@/modules/catalogue/catalogue-cache";
 import { requireAdminActionPermission } from "../admin-auth-service";
 import {
   disconnectSheetsConnection,
@@ -11,6 +12,7 @@ import {
 
 function revalidateSheetsRoutes(syncJobId?: string) {
   try {
+    revalidatePublicCatalogueCache();
     revalidatePath("/admin/google-sheets");
     if (syncJobId) revalidatePath(`/admin/google-sheets/${syncJobId}`);
     revalidatePath("/admin/products");

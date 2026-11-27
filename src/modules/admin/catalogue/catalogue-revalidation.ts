@@ -1,7 +1,9 @@
 import { revalidatePath } from "next/cache";
+import { revalidatePublicCatalogueCache } from "@/modules/catalogue/catalogue-cache";
 
 export function revalidateCataloguePaths(productSlugs: string[] = []): void {
   try {
+    revalidatePublicCatalogueCache();
     revalidatePath("/", "layout");
     revalidatePath("/products");
     revalidatePath("/admin/products");

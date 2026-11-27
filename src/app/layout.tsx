@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { WebVitalsReporter } from "@/components/monitoring/web-vitals-reporter";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { brand } from "@/config/brand";
 import "@fontsource-variable/bodoni-moda/opsz.css";
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className="font-body antialiased">
         <ThemeProvider>{children}</ThemeProvider>
+        <WebVitalsReporter />
       </body>
     </html>
   );

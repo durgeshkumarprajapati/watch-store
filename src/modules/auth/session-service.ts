@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { Customer } from "@prisma/client";
 import { hasDatabaseUrl } from "@/config/env";
@@ -14,7 +15,7 @@ export class UnauthorizedCustomerError extends Error {
   }
 }
 
-export async function getAuthenticatedCustomer(): Promise<Customer | null> {
+export const getAuthenticatedCustomer = cache(async function getAuthenticatedCustomer(): Promise<Customer | null> {
   if (!hasDatabaseUrl()) return null;
   let session = null;
   try {
@@ -44,7 +45,7 @@ export async function getAuthenticatedCustomer(): Promise<Customer | null> {
       fullName: user.name,
     }),
   );
-}
+});
 
 export async function requireAuthenticatedCustomerPage(): Promise<Customer> {
   const admin = await getAuthenticatedAdmin();

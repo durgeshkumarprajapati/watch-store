@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidatePublicCatalogueCache } from "@/modules/catalogue/catalogue-cache";
 import { z } from "zod";
 import { getServerEnv, hasDatabaseUrl } from "@/config/env";
 import { seedDataAllowed } from "@/config/data-source";
@@ -71,6 +72,7 @@ export async function submitCheckoutAction(raw: CheckoutInput): Promise<SubmitCh
     // Clear cart ONLY after the PostgreSQL transaction succeeded.
     await clearCartLines();
     await savePromoCode(null);
+    revalidatePublicCatalogueCache();
     revalidatePath("/", "layout");
     revalidatePath("/cart");
     revalidatePath("/checkout");
