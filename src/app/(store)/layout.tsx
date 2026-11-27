@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { CustomerPwaManager } from "@/components/pwa/customer-pwa-manager";
 import { StoreHeader } from "@/components/store/store-header";
@@ -17,11 +18,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function StoreLayout({ children }: { children: React.ReactNode }) {
+async function StoreHeaderWithSession() {
   const [cartCount, customer] = await Promise.all([getCartCount(), getAuthenticatedCustomer()]);
+  return <StoreHeader cartCount={cartCount} signedIn={Boolean(customer)} />;
+}
+
+export default function StoreLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col pb-[env(safe-area-inset-bottom)]">
-      <StoreHeader cartCount={cartCount} signedIn={Boolean(customer)} />
+      <Suspense fallback={<StoreHeader cartCount={0} signedIn={false} />}>
+        <StoreHeaderWithSession />
+      </Suspense>
       <main className="flex-1">{children}</main>
       <StoreFooter />
       <script

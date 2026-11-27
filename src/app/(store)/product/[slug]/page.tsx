@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -18,6 +19,10 @@ const AVAILABILITY_BADGE: Record<Availability, { label: string; tone: "success" 
   out_of_stock: { label: "Out of Stock", tone: "error" },
 };
 
+const getCachedProductBySlug = cache(async (slug: string) =>
+  getProductRepository().getBySlug(slug),
+);
+
 export async function generateMetadata({
   params,
 }: {
@@ -25,7 +30,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   if (!slug || slug.length > 128) return { title: "Timepiece Not Found" };
-  const product = await getProductRepository().getBySlug(slug);
+  const product = await getCachedProductBySlug(slug);
   if (!product) return { title: "Timepiece Not Found" };
   return {
     title: product.name,
@@ -42,7 +47,7 @@ export default async function ProductDetailsPage({
   if (!slug || slug.length > 128) notFound();
 
   const repo = getProductRepository();
-  const product = await repo.getBySlug(slug);
+  const product = await getCachedProductBySlug(slug);
   if (!product) notFound();
 
   const [categories, wishlist, related] = await Promise.all([

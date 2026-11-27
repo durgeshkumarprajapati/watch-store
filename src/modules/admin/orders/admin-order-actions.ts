@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidatePublicCatalogueCache } from "@/modules/catalogue/catalogue-cache";
 import { requireAdminActionPermission } from "../admin-auth-service";
 import {
   cancelAdminOrder,
@@ -19,6 +20,7 @@ import type {
 
 function revalidateOrderPaths(orderId: string) {
   try {
+    revalidatePublicCatalogueCache();
     revalidatePath("/admin/orders");
     revalidatePath(`/admin/orders/${orderId}`);
     revalidatePath("/admin/inventory");

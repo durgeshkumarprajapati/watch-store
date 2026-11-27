@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidatePublicCatalogueCache } from "@/modules/catalogue/catalogue-cache";
 import { requireAdminActionPermission } from "../admin-auth-service";
 import {
   recordStockAdjustment,
@@ -17,6 +18,7 @@ import type {
 
 function revalidateInventoryRoutes(productId: string) {
   try {
+    revalidatePublicCatalogueCache();
     revalidatePath("/admin/inventory");
     revalidatePath(`/admin/inventory/${productId}`);
     revalidatePath("/admin/inventory/movements");
